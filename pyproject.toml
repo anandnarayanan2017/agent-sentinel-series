@@ -36,7 +36,7 @@ dev = [
     "pytest-cov>=7.1.0",
     "bandit>=1.8",
     "types-PyYAML>=6.0",
-    "types-psycopg2>=2.9",
+    "types-psycopg2>=2.9.21.20260911",
     "types-python-jose>=3.3",
 ]
 
