@@ -20,4 +20,4 @@ Where else have you seen an averaged score hide the thing that actually mattered
 
 ![Diagram for this post: rules first statistics second](../images/03-rules-first-statistics-second-1.png)
 
-Full write-up, with code links: https://github.com/anandnarayanan2017/agent-sentinel-series/blob/main/docs/blog/technical-details/03-rules-first-statistics-second.md
+Read the full article: https://anandnarayanan.net/blog/agent-sentinel-03-rules-first-statistics-second/

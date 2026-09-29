@@ -20,4 +20,4 @@ Where do you draw the line between useful visibility and a tool you now have to 
 
 ![Diagram for this post: visibility without a blank check](../images/07-visibility-without-a-blank-check-1.png)
 
-Full write-up, with code links: https://github.com/anandnarayanan2017/agent-sentinel-series/blob/main/docs/blog/technical-details/07-visibility-without-a-blank-check.md
+Read the full article: https://anandnarayanan.net/blog/agent-sentinel-07-visibility-without-a-blank-check/

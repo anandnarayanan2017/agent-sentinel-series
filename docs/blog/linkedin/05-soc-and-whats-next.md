@@ -20,4 +20,4 @@ If you run a SOC today, what's the AI-agent evidence you most wish showed up in 
 
 ![Diagram for this post: soc and whats next](../images/05-soc-and-whats-next-1.png)
 
-Full write-up, with code links: https://github.com/anandnarayanan2017/agent-sentinel-series/blob/main/docs/blog/technical-details/05-soc-and-whats-next.md
+Read the full article: https://anandnarayanan.net/blog/agent-sentinel-05-soc-and-whats-next/

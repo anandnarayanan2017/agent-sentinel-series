@@ -18,4 +18,4 @@ Where would you draw the line between recording everything and failing safe if r
 
 ![Diagram for this post: simulation to real models](../images/02-simulation-to-real-models-1.png)
 
-Full write-up, with code links: https://github.com/anandnarayanan2017/agent-sentinel-series/blob/main/docs/blog/technical-details/02-simulation-to-real-models.md
+Read the full article: https://anandnarayanan.net/blog/agent-sentinel-02-simulation-to-real-models/

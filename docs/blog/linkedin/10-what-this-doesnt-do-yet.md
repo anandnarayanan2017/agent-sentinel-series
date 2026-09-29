@@ -18,4 +18,4 @@ That's the series. Thanks for following along. What would you want covered next?
 
 ![Diagram for this post: what this doesnt do yet](../images/10-what-this-doesnt-do-yet-1.png)
 
-Full write-up, with code links: https://github.com/anandnarayanan2017/agent-sentinel-series/blob/main/docs/blog/technical-details/10-what-this-doesnt-do-yet.md
+Read the full article: https://anandnarayanan.net/blog/agent-sentinel-10-what-this-doesnt-do-yet/

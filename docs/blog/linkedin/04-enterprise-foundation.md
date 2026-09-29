@@ -20,4 +20,4 @@ What's the one piece of enterprise plumbing you'd never skip, even under deadlin
 
 ![Diagram for this post: enterprise foundation](../images/04-enterprise-foundation-1.png)
 
-Full write-up, with code links: https://github.com/anandnarayanan2017/agent-sentinel-series/blob/main/docs/blog/technical-details/04-enterprise-foundation.md
+Read the full article: https://anandnarayanan.net/blog/agent-sentinel-04-enterprise-foundation/

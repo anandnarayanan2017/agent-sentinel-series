@@ -18,4 +18,4 @@ The real lesson isn't that we don't have bugs. It's that the cheapest day to cat
 
 ![Diagram for this post: built to fail safe not fail quiet](../images/09-built-to-fail-safe-not-fail-quiet-1.png)
 
-Full write-up, with code links: https://github.com/anandnarayanan2017/agent-sentinel-series/blob/main/docs/blog/technical-details/09-built-to-fail-safe-not-fail-quiet.md
+Read the full article: https://anandnarayanan.net/blog/agent-sentinel-09-built-to-fail-safe-not-fail-quiet/

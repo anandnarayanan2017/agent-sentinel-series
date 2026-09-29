@@ -18,4 +18,4 @@ If you run AI agents in production today, does your current monitoring see anyth
 
 ![Diagram for this post: the blind spot every agent firewall has](../images/06-the-blind-spot-every-agent-firewall-has-1.png)
 
-Full write-up, with code links: https://github.com/anandnarayanan2017/agent-sentinel-series/blob/main/docs/blog/technical-details/06-the-blind-spot-every-agent-firewall-has.md
+Read the full article: https://anandnarayanan.net/blog/agent-sentinel-06-the-blind-spot-every-agent-firewall-has/

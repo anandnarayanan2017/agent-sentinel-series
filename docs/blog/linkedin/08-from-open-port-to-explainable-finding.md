@@ -18,4 +18,4 @@ The uncomfortable truth about most security tooling: an unlabeled clean result a
 
 ![Diagram for this post: from open port to explainable finding](../images/08-from-open-port-to-explainable-finding-1.png)
 
-Full write-up, with code links: https://github.com/anandnarayanan2017/agent-sentinel-series/blob/main/docs/blog/technical-details/08-from-open-port-to-explainable-finding.md
+Read the full article: https://anandnarayanan.net/blog/agent-sentinel-08-from-open-port-to-explainable-finding/

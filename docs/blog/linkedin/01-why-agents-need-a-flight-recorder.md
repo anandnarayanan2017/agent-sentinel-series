@@ -22,4 +22,4 @@ If an auditor asked you right now what your AI agents did last week, what would 
 
 ![Diagram for this post: why agents need a flight recorder](../images/01-why-agents-need-a-flight-recorder-1.png)
 
-Full write-up, with code links: https://github.com/anandnarayanan2017/agent-sentinel-series/blob/main/docs/blog/technical-details/01-why-agents-need-a-flight-recorder.md
+Read the full article: https://anandnarayanan.net/blog/agent-sentinel-01-why-agents-need-a-flight-recorder/
