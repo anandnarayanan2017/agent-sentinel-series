@@ -30,7 +30,7 @@ auth      = ["msal>=1.28", "python-jose[cryptography]>=3.4"]
 dev = [
     "pytest>=8.0",
     "httpx>=0.27",
-    "ruff==0.15.21",
+    "ruff==0.16.9",
     "python-dotenv>=1.0",
     "mypy>=2.2.0",
     "pytest-cov>=7.1.0",
