@@ -1,0 +1,77 @@
+[project]
+name = "agent-sentinel"
+version = "1.0.0"
+description = "Explainable runtime observability and policy detection for AI agents / M2M identities"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Agent Sentinel contributors" }]
+dependencies = [
+    "pydantic>=2.6",
+    "duckdb>=0.10",
+    "pyyaml>=6.0",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "numpy>=2.4.6",
+]
+
+[project.optional-dependencies]
+# Phase 1
+proxy     = ["mitmproxy>=10.0"]
+# Phase 2 — real cloud SDK interceptors
+azure     = ["openai>=1.30"]
+anthropic = ["anthropic>=0.30"]
+cloud     = ["openai>=1.30", "anthropic>=0.30"]
+# Phase 3 — persistent storage + SIEM
+postgres  = ["psycopg2-binary>=2.9"]
+siem      = ["psycopg2-binary>=2.9", "azure-monitor-ingestion>=1.0", "azure-identity>=1.15"]
+auth      = ["msal>=1.28", "python-jose[cryptography]>=3.4"]
+# Development
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.27",
+    "ruff==0.15.21",
+    "python-dotenv>=1.0",
+    "mypy>=2.2.0",
+    "pytest-cov>=7.1.0",
+    "bandit>=1.8",
+    "types-PyYAML>=6.0",
+    "types-psycopg2>=2.9",
+    "types-python-jose>=3.3",
+]
+
+[project.scripts]
+sentinel = "sentinel.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "" = "app" }
+
+[tool.setuptools.packages.find]
+where = ["app"]
+include = ["sentinel*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["app"]
+testpaths = ["app/tests"]
+markers = [
+    "integration: requires a real backing service (e.g. DuckDB on disk)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint.per-file-ignores]
+# pytest.importorskip(...) intentionally precedes other imports so the whole
+# module is skipped (not collected) when the optional dependency is absent.
+"app/tests/test_sentinel_sequence*.py" = ["E402"]
+# data_gen.py is documented (see data_gen_payments.py's module docstring) as
+# staying byte-identical to its original baseline for training-data
+# provenance -- exempted here instead of edited in place.
+"app/sentinel_sequence/data_gen.py" = ["E731"]
+
+[tool.mypy]

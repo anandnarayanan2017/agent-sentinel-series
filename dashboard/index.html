@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Sentinel | CISO Dashboard</title>
+
+<!-- NO Babel, NO build step. htm converts tagged templates → React.createElement -->
+<!-- Pinned to exact versions with SRI hashes — a repointed CDN tag can't
+     silently swap in different code without the integrity check failing. -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js" integrity="sha384-toVdrLSMaw7Y55MowcKqkmFL/Ek6Sky62NOk0b5sDDZBu2wcoPyyQUt9unDVjXhL" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g" crossorigin="anonymous"></script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh;background:#030711;color:#e2e8f0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.mono{font-family:'Fira Code','JetBrains Mono',Consolas,monospace}
+
+@keyframes spin        {to{transform:rotate(360deg)}}
+@keyframes livePulse   {0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.6)}}
+@keyframes fadeUp      {from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes countPop    {0%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes bannerAnim  {0%,100%{opacity:1}50%{opacity:.8}}
+@keyframes drawerIn    {from{transform:translateX(100%)}to{transform:translateX(0)}}
+
+.spin        {animation:spin      1s   linear          infinite}
+.pulse       {animation:livePulse 1.7s ease-in-out     infinite}
+.fade-up     {animation:fadeUp    .4s  ease             both}
+.count-pop   {animation:countPop  .4s  ease}
+.banner-anim {animation:bannerAnim 2s  ease-in-out     infinite}
+.drawer-in   {animation:drawerIn  .28s cubic-bezier(.4,0,.2,1)}
+
+/* cards */
+.card{background:rgba(8,18,40,.92);border:1px solid rgba(30,58,138,.42);border-radius:14px}
+.card-pad{padding:18px 20px}
+
+/* table rows */
+.trow{cursor:pointer;transition:background .1s}
+.trow:hover{background:rgba(30,58,138,.22)!important}
+
+/* scrollbars */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:2px}
+
+/* badges */
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:9999px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border:1px solid}
+.chip {display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;border:1px solid;margin:2px 2px 2px 0}
+
+/* select/input reset */
+select,input{outline:none;font-family:inherit}
+button{font-family:inherit;cursor:pointer}
+</style>
+</head>
+
+<body>
+<!-- shown until React hydrates -->
+<div id="root" style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px">
+  <div class="spin" style="width:30px;height:30px;border:3px solid #1e3a5f;border-top-color:#3b82f6;border-radius:50%"></div>
+  <div style="color:#334155;font-size:13px">Connecting to Agent Sentinel API…</div>
+</div>
+
+<script>
+/* ── Bootstrap htm (no Babel) ─────────────────────────────────────────────── */
+const _htm = typeof htm === 'function' ? htm : htm.default;
+const html = _htm.bind(React.createElement);
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
+
+/* ── Config ──────────────────────────────────────────────────────────────── */
+const API  = 'http://localhost:8000';
+const TICK = 10;   // auto-refresh seconds
+
+const SEV = {
+  critical: { bg:'#450a0a', txt:'#fca5a5', bdr:'#dc2626', ch:'#ef4444' },
+  high:     { bg:'#431407', txt:'#fdba74', bdr:'#c2410c', ch:'#f97316' },
+  medium:   { bg:'#422006', txt:'#fde047', bdr:'#a16207', ch:'#eab308' },
+  low:      { bg:'#0c1a40', txt:'#93c5fd', bdr:'#1d4ed8', ch:'#3b82f6' },
+  info:     { bg:'#0f172a', txt:'#94a3b8', bdr:'#475569', ch:'#64748b' },
+};
+const sc = s => SEV[s?.toLowerCase()] || SEV.info;
+
+/* ── Utils ───────────────────────────────────────────────────────────────── */
+const fmtT  = ts => { try { return new Date(ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}); } catch { return '—'; } };
+const fmtDT = ts => { try { return new Date(ts).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); } catch { return '—'; } };
+const fmtB  = b  => { if(!b) return '—'; if(b>=1048576) return (b/1048576).toFixed(1)+'MB'; if(b>=1024) return (b/1024).toFixed(1)+'KB'; return b+'B'; };
+const parseJ = v => { if(!v) return []; if(typeof v==='string'){try{return JSON.parse(v);}catch{return [];}} return Array.isArray(v)?v:[]; };
+
+function sevStyle(s) {
+  const c = sc(s);
+  return { background: c.bg, color: c.txt, borderColor: c.bdr };
+}
+function chipStyle(r='') {
+  const l = r.toLowerCase();
+  if(l.includes('dora'))                        return { background:'#083344', color:'#67e8f9', borderColor:'#155e75' };
+  if(l.includes('ai act')||l.includes('eu ai')) return { background:'#1e1b4b', color:'#a5b4fc', borderColor:'#3730a3' };
+  if(l.includes('cssf'))                        return { background:'#052e16', color:'#86efac', borderColor:'#166534' };
+  return { background:'#0f172a', color:'#64748b', borderColor:'#334155' };
+}
+
+/* ── Chart data builder ──────────────────────────────────────────────────── */
+function buildTimeline(findings, minutes=20) {
+  const now    = Date.now();
+  const labels = [], crit = [], high = [], med = [], low = [];
+  for(let i=minutes-1; i>=0; i--) {
+    const t = new Date(now - i*60000);
+    labels.push(t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+    crit.push(0); high.push(0); med.push(0); low.push(0);
+  }
+  findings.forEach(f => {
+    try {
+      const k = new Date(f.ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      const i = labels.indexOf(k);
+      if(i<0) return;
+      switch(f.severity?.toLowerCase()){
+        case 'critical': crit[i]++; break;
+        case 'high':     high[i]++; break;
+        case 'medium':   med[i]++;  break;
+        case 'low':      low[i]++;  break;
+      }
+    } catch {}
+  });
+  return { labels, crit, high, med, low };
+}
+
+/* ── Small atoms ─────────────────────────────────────────────────────────── */
+function SevBadge({ sev }) {
+  return html`<span class="badge" style=${sevStyle(sev)}>${sev||'info'}</span>`;
+}
+function Chip({ text }) {
+  return html`<span class="chip" style=${chipStyle(text)}>${text}</span>`;
+}
+function ActionPill({ action }) {
+  const colors = { llm_call:'#c084fc', tool_call:'#22d3ee', network_call:'#fb923c', data_access:'#4ade80' };
+  return html`<span class="mono" style=${{ color: colors[action]||'#64748b', fontSize:11 }}>${action||'—'}</span>`;
+}
+
+/* ── Timeline chart (Chart.js) ───────────────────────────────────────────── */
+function TimelineChart({ findings }) {
+  const ref  = useRef(null);
+  const inst = useRef(null);
+
+  useEffect(() => {
+    if(!ref.current) return;
+    if(inst.current){ inst.current.destroy(); inst.current=null; }
+    const { labels,crit,high,med,low } = buildTimeline(findings);
+    inst.current = new Chart(ref.current, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label:'Critical', data:crit, borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,.15)',   fill:true, tension:.4, borderWidth:2, pointRadius:0 },
+          { label:'High',     data:high, borderColor:'#f97316', backgroundColor:'rgba(249,115,22,.12)',  fill:true, tension:.4, borderWidth:2, pointRadius:0 },
+          { label:'Medium',   data:med,  borderColor:'#eab308', backgroundColor:'rgba(234,179,8,.08)',   fill:true, tension:.4, borderWidth:2, pointRadius:0 },
+          { label:'Low',      data:low,  borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.08)',  fill:true, tension:.4, borderWidth:2, pointRadius:0 },
+        ],
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false, animation:false,
+        plugins: {
+          legend:  { display:false },
+          tooltip: {
+            mode:'index', intersect:false,
+            backgroundColor:'#0a1628', borderColor:'#1e3a5f', borderWidth:1,
+            titleColor:'#64748b', bodyColor:'#e2e8f0', padding:10,
+          },
+        },
+        scales: {
+          x: { ticks:{ color:'#334155', font:{size:9} }, grid:{ color:'rgba(30,58,138,.2)' } },
+          y: { ticks:{ color:'#334155', font:{size:9}, precision:0 }, grid:{ color:'rgba(30,58,138,.2)' }, beginAtZero:true },
+        },
+      },
+    });
+    return () => { inst.current?.destroy(); inst.current=null; };
+  }, [findings]);
+
+  return html`
+    <div class="card card-pad" style=${{ height:230 }}>
+      <div style=${{ fontSize:10, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:10 }}>
+        Findings Timeline — last 20 min
+      </div>
+      <div style=${{ position:'relative', height:170 }}>
+        <canvas ref=${ref}></canvas>
+      </div>
+    </div>`;
+}
+
+/* ── Severity donut (Chart.js) ───────────────────────────────────────────── */
+function SeverityDonut({ by }) {
+  const ref  = useRef(null);
+  const inst = useRef(null);
+
+  const entries = useMemo(() => Object.entries(by||{}).filter(([,v])=>v>0), [by]);
+  const total   = entries.reduce((a,[,v])=>a+v, 0);
+
+  useEffect(() => {
+    if(!ref.current) return;
+    if(inst.current){ inst.current.destroy(); inst.current=null; }
+    if(!entries.length) return;
+    inst.current = new Chart(ref.current, {
+      type: 'doughnut',
+      data: {
+        labels:   entries.map(([k])=>k),
+        datasets: [{ data: entries.map(([,v])=>v), backgroundColor: entries.map(([k])=>sc(k).ch), borderWidth:2, borderColor:'#030711', hoverOffset:4 }],
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false, animation:false,
+        cutout:'62%',
+        plugins: {
+          legend:  { display:false },
+          tooltip: { backgroundColor:'#0a1628', borderColor:'#1e3a5f', borderWidth:1, bodyColor:'#e2e8f0', padding:10 },
+        },
+      },
+    });
+    return () => { inst.current?.destroy(); inst.current=null; };
+  }, [entries]);
+
+  return html`
+    <div class="card card-pad" style=${{ height:230, display:'flex', flexDirection:'column' }}>
+      <div style=${{ fontSize:10, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:10 }}>
+        Severity Distribution
+      </div>
+      ${total === 0
+        ? html`<div style=${{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'#1e3a5f', fontSize:13 }}>✅ No findings yet</div>`
+        : html`
+          <div style=${{ display:'flex', alignItems:'center', gap:16, flex:1 }}>
+            <div style=${{ position:'relative', width:140, height:155, flexShrink:0 }}>
+              <canvas ref=${ref} style=${{ position:'absolute', inset:0 }}></canvas>
+              <div style=${{ position:'absolute', inset:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+                <div style=${{ fontSize:22, fontWeight:900, lineHeight:1 }}>${total}</div>
+                <div style=${{ fontSize:9, color:'#475569', textTransform:'uppercase', letterSpacing:'.06em' }}>total</div>
+              </div>
+            </div>
+            <div style=${{ flex:1, display:'flex', flexDirection:'column', gap:8 }}>
+              ${entries.map(([k,v]) => html`
+                <div key=${k} style=${{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <div style=${{ display:'flex', alignItems:'center', gap:6 }}>
+                    <div style=${{ width:8, height:8, borderRadius:2, background:sc(k).ch, flexShrink:0 }}></div>
+                    <span style=${{ fontSize:11, color:'#94a3b8', textTransform:'capitalize' }}>${k}</span>
+                  </div>
+                  <span style=${{ fontSize:13, fontWeight:700, color:sc(k).ch }}>${v}</span>
+                </div>`)}
+            </div>
+          </div>`
+      }
+    </div>`;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+function Header({ online, updated, cd, onRefresh, onExport }) {
+  const dotStyle = {
+    width:8, height:8, borderRadius:'50%',
+    background: online ? '#22c55e' : '#ef4444',
+    flexShrink:0,
+  };
+  return html`
+    <header style=${{
+      position:'sticky', top:0, zIndex:50,
+      background:'rgba(3,7,17,.94)', backdropFilter:'blur(14px)',
+      borderBottom:'1px solid rgba(30,58,138,.38)', padding:'0 24px',
+    }}>
+      <div style=${{ maxWidth:1640, margin:'0 auto', height:56, display:'flex', alignItems:'center', gap:14 }}>
+
+        <div style=${{ display:'flex', alignItems:'center', gap:10 }}>
+          <div style=${{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#1d4ed8,#7c3aed)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18, boxShadow:'0 0 18px rgba(124,58,237,.45)' }}>🛡️</div>
+          <div>
+            <div style=${{ fontWeight:800, fontSize:15, letterSpacing:'-.02em', lineHeight:1.2 }}>Agent Sentinel</div>
+            <div style=${{ fontSize:10, color:'#475569', fontWeight:600, letterSpacing:'.05em', textTransform:'uppercase' }}>AI Behavioral Firewall · CISO</div>
+          </div>
+        </div>
+
+        <div style=${{ flex:1 }}></div>
+
+        <div style=${{ display:'flex', alignItems:'center', gap:6 }}>
+          <div class=${online?'pulse':''} style=${dotStyle}></div>
+          <span style=${{ fontSize:11, fontWeight:700, color: online?'#22c55e':'#ef4444' }}>${online?'LIVE':'OFFLINE'}</span>
+        </div>
+
+        ${updated && html`<span style=${{ fontSize:11, color:'#334155' }}>Updated <span class="mono" style=${{ color:'#64748b' }}>${updated}</span></span>`}
+
+        ${cd==='live'
+          ? html`<span style=${{ fontSize:11, color:'#22c55e', fontWeight:700, display:'flex', alignItems:'center', gap:5 }}><span class="pulse" style=${{ display:'inline-block', width:6, height:6, borderRadius:'50%', background:'#22c55e' }}></span>SSE live</span>`
+          : html`<span style=${{ fontSize:11, color:'#334155' }}>Refresh <span class="mono" style=${{ color:'#94a3b8', fontWeight:700 }}>${cd}s</span></span>`
+        }
+
+        <button onClick=${onRefresh}
+          style=${{ padding:'6px 14px', background:'#0f172a', border:'1px solid #1e3a5f', color:'#94a3b8', borderRadius:8, fontSize:12, fontWeight:600, transition:'all .15s' }}
+          onMouseEnter=${e=>{e.target.style.borderColor='#3b82f6';e.target.style.color='#e2e8f0'}}
+          onMouseLeave=${e=>{e.target.style.borderColor='#1e3a5f';e.target.style.color='#94a3b8'}}>
+          ↻ Refresh
+        </button>
+        <button onClick=${onExport}
+          style=${{ padding:'6px 14px', background:'linear-gradient(135deg,#1d4ed8,#4338ca)', border:'none', color:'#fff', borderRadius:8, fontSize:12, fontWeight:600, boxShadow:'0 0 14px rgba(67,56,202,.4)' }}>
+          ↓ Export
+        </button>
+      </div>
+    </header>`;
+}
+
+/* ── Alert banner ────────────────────────────────────────────────────────── */
+function AlertBanner({ by, findings }) {
+  const crit = by?.critical||0, high = by?.high||0;
+  if(!crit && !high) return null;
+  const agents = [...new Set(
+    findings.filter(f=>['critical','high'].includes(f.severity?.toLowerCase())).map(f=>f.agent_id)
+  )].slice(0,4);
+  const isCrit = crit>0;
+  return html`
+    <div class="banner-anim" style=${{
+      background: isCrit?'linear-gradient(90deg,#450a0a,#7f1d1d)':'linear-gradient(90deg,#431407,#7c2d12)',
+      borderBottom:`1px solid ${isCrit?'#ef4444':'#f97316'}`, padding:'10px 24px',
+    }}>
+      <div style=${{ maxWidth:1640, margin:'0 auto', display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+        <span style=${{ fontSize:18 }}>${isCrit?'🚨':'⚠️'}</span>
+        <span style=${{ fontWeight:700, fontSize:13, color: isCrit?'#fca5a5':'#fdba74' }}>
+          ${isCrit?`CRITICAL: ${crit} violation${crit>1?'s':''} detected —`:`WARNING: ${high} high-severity violation${high>1?'s':''} —`}
+        </span>
+        ${agents.map(a => html`
+          <code key=${a} style=${{ background:'rgba(0,0,0,.35)', color:'#e2e8f0', padding:'1px 7px', borderRadius:5, fontSize:11 }}>${a}</code>`)}
+      </div>
+    </div>`;
+}
+
+/* ── Stat card ───────────────────────────────────────────────────────────── */
+function StatCard({ label, value, color, glow, icon, sub }) {
+  const prevRef = useRef(value);
+  const [key, setKey] = useState(0);
+  useEffect(() => {
+    if(value !== prevRef.current){ setKey(k=>k+1); prevRef.current=value; }
+  }, [value]);
+
+  return html`
+    <div class="card card-pad" style=${{ borderColor:color?color+'30':'rgba(30,58,138,.42)', boxShadow: glow&&value?`0 0 28px ${color}28,0 0 60px ${color}0a`:'none', transition:'all .3s' }}>
+      <div style=${{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+        <div>
+          <div style=${{ fontSize:10, fontWeight:700, color:color||'#475569', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8 }}>${label}</div>
+          <div key=${key} class=${key?'count-pop':''} style=${{ fontSize:38, fontWeight:900, color:color||'#e2e8f0', lineHeight:1, letterSpacing:'-.02em' }}>${value??'—'}</div>
+          ${sub&&html`<div style=${{ fontSize:10, color:'#334155', marginTop:4 }}>${sub}</div>`}
+        </div>
+        <span style=${{ fontSize:20, opacity:.65 }}>${icon}</span>
+      </div>
+    </div>`;
+}
+
+/* ── Agent status grid ───────────────────────────────────────────────────── */
+function AgentGrid({ findings, events }) {
+  const data = useMemo(() => {
+    const m = {};
+    const add = id => { if(!m[id]) m[id]={critical:0,high:0,medium:0,low:0,total:0,last:null}; return m[id]; };
+    findings.forEach(f => {
+      const a=add(f.agent_id), s=f.severity?.toLowerCase();
+      if(a[s]!==undefined) a[s]++;
+      a.total++;
+      if(!a.last||f.ts>a.last) a.last=f.ts;
+    });
+    events.forEach(e => { const a=add(e.agent_id); if(!a.last||e.ts>a.last) a.last=e.ts; });
+    return m;
+  }, [findings,events]);
+
+  const agents = Object.keys(data).sort();
+  if(!agents.length) return null;
+
+  return html`
+    <div>
+      <div style=${{ fontSize:10, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:12 }}>Agent Status</div>
+      <div style=${{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))', gap:10 }}>
+        ${agents.map(ag => {
+          const s = data[ag];
+          const hasH = s.critical+s.high > 0;
+          const hasM = s.medium > 0;
+          const col  = hasH?'#ef4444':hasM?'#eab308':'#22c55e';
+          const lbl  = hasH?'ALERT':hasM?'WARN':'CLEAN';
+          return html`
+            <div key=${ag} class="card" style=${{ padding:'13px 15px', borderColor:`${col}35`, boxShadow:hasH?`0 0 20px ${col}18`:'none' }}>
+              <div style=${{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+                <span class="mono" style=${{ fontSize:11, color:'#7dd3fc', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:115 }}>${ag}</span>
+                <span style=${{ fontSize:9, fontWeight:700, color:col, background:col+'22', border:`1px solid ${col}55`, padding:'1px 6px', borderRadius:4, flexShrink:0 }}>${lbl}</span>
+              </div>
+              <div style=${{ fontSize:11, display:'flex', flexDirection:'column', gap:3 }}>
+                ${s.critical>0&&html`<span style=${{color:'#fca5a5'}}>● ${s.critical} critical</span>`}
+                ${s.high>0    &&html`<span style=${{color:'#fdba74'}}>● ${s.high} high</span>`}
+                ${s.medium>0  &&html`<span style=${{color:'#fde047'}}>● ${s.medium} medium</span>`}
+                ${s.low>0     &&html`<span style=${{color:'#93c5fd'}}>● ${s.low} low</span>`}
+                ${s.total===0 &&html`<span style=${{color:'#22c55e'}}>✅ No findings</span>`}
+              </div>
+              ${s.last&&html`<div style=${{ fontSize:9, color:'#334155', marginTop:6 }}>Last: ${fmtT(s.last)}</div>`}
+            </div>`;
+        })}
+      </div>
+    </div>`;
+}
+
+/* ── Rules + compliance ──────────────────────────────────────────────────── */
+function InsightsRow({ findings }) {
+  const rules = useMemo(() => {
+    const c={};
+    findings.forEach(f=>{c[f.rule_id]=(c[f.rule_id]||0)+1;});
+    return Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  }, [findings]);
+
+  const controls = useMemo(() => {
+    const s=new Set();
+    findings.forEach(f=>parseJ(f.control_refs).forEach(r=>s.add(r)));
+    return [...s].sort();
+  }, [findings]);
+
+  const max = rules[0]?.[1]||1;
+  const fw = name => controls.filter(c=>c.toLowerCase().includes(name.toLowerCase())).length;
+
+  return html`
+    <div style=${{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+
+      <div class="card card-pad">
+        <div style=${{ fontSize:10, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:14 }}>Top Triggered Rules</div>
+        ${rules.length===0
+          ? html`<div style=${{fontSize:12,color:'#1e3a5f'}}>No rules triggered yet</div>`
+          : rules.map(([rule,cnt]) => html`
+              <div key=${rule} style=${{marginBottom:10}}>
+                <div style=${{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                  <span class="mono" style=${{fontSize:11,color:'#94a3b8'}}>${rule}</span>
+                  <span style=${{fontSize:11,fontWeight:700,color:'#e2e8f0',background:'#0f172a',padding:'1px 7px',borderRadius:4,flexShrink:0}}>${cnt}</span>
+                </div>
+                <div style=${{height:3,background:'#0f172a',borderRadius:2}}>
+                  <div style=${{height:3,background:'linear-gradient(90deg,#f97316,#ef4444)',borderRadius:2,width:`${cnt/max*100}%`,transition:'width .5s'}}></div>
+                </div>
+              </div>`)
+        }
+      </div>
+
+      <div class="card card-pad">
+        <div style=${{ fontSize:10, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:14 }}>Compliance Coverage</div>
+        ${controls.length===0
+          ? html`<div style=${{fontSize:12,color:'#1e3a5f'}}>Run the simulator to populate</div>`
+          : html`
+              <div style=${{marginBottom:14}}>${controls.map((r,i)=>html`<${Chip} key=${i} text=${r}/>`)}</div>
+              <div style=${{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+                ${[['DORA','#67e8f9'],['EU AI Act','#a5b4fc'],['CSSF','#86efac']].map(([name,color])=>html`
+                  <div key=${name} style=${{background:'#0a1628',borderRadius:8,padding:'10px 12px',textAlign:'center',border:'1px solid rgba(30,58,138,.35)'}}>
+                    <div style=${{fontSize:22,fontWeight:900,color,lineHeight:1}}>${fw(name.split(' ')[0])}</div>
+                    <div style=${{fontSize:9,color:'#475569',marginTop:3,fontWeight:600,textTransform:'uppercase',letterSpacing:'.05em'}}>${name}</div>
+                  </div>`)}
+              </div>`
+        }
+      </div>
+    </div>`;
+}
+
+/* ── Evidence drawer ─────────────────────────────────────────────────────── */
+function EvidenceDrawer({ finding, onClose }) {
+  if(!finding) return null;
+  const evs  = parseJ(finding.evidence);
+  const refs = parseJ(finding.control_refs);
+  const c    = sc(finding.severity);
+
+  return html`
+    <div style=${{ position:'fixed', inset:0, zIndex:100, display:'flex' }} onClick=${onClose}>
+      <div style=${{ flex:1, background:'rgba(3,7,17,.7)', backdropFilter:'blur(6px)' }}></div>
+      <div class="drawer-in" style=${{ width:500, maxWidth:'92vw', background:'#070f20', borderLeft:`1px solid ${c.bdr}50`, overflowY:'auto', height:'100vh', boxShadow:`-24px 0 60px rgba(0,0,0,.6)` }} onClick=${e=>e.stopPropagation()}>
+
+        <div style=${{ padding:'20px 24px', borderBottom:'1px solid rgba(30,58,138,.35)', position:'sticky', top:0, background:'#070f20', zIndex:10 }}>
+          <div style=${{ display:'flex', alignItems:'flex-start', gap:10 }}>
+            <div style=${{ flex:1, minWidth:0 }}>
+              <div style=${{ display:'flex', alignItems:'center', gap:8, marginBottom:6, flexWrap:'wrap' }}>
+                <${SevBadge} sev=${finding.severity}/>
+                <span style=${{ fontSize:14, fontWeight:700, color:'#e2e8f0', lineHeight:1.3 }}>${finding.title}</span>
+              </div>
+              <div class="mono" style=${{ fontSize:10, color:'#475569', lineHeight:1.8 }}>
+                ${finding.agent_id} · ${finding.rule_id} · ${fmtDT(finding.ts)}
+              </div>
+            </div>
+            <button onClick=${onClose} style=${{ background:'none', border:'none', color:'#334155', fontSize:26, lineHeight:1, padding:0, flexShrink:0 }}
+              onMouseEnter=${e=>e.target.style.color='#94a3b8'}
+              onMouseLeave=${e=>e.target.style.color='#334155'}>×</button>
+          </div>
+        </div>
+
+        <div style=${{ padding:'22px 24px', display:'flex', flexDirection:'column', gap:22 }}>
+
+          <div>
+            <div style=${{ fontSize:10, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8 }}>What Happened</div>
+            <div style=${{ fontSize:13, lineHeight:1.8, color:'#cbd5e1', background:'#0a1628', borderRadius:8, padding:'12px 14px', borderLeft:`3px solid ${c.bdr}` }}>
+              ${finding.explanation||'—'}
+            </div>
+          </div>
+
+          <div>
+            <div style=${{ fontSize:10, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8 }}>Severity Rationale</div>
+            <div style=${{ fontSize:13, lineHeight:1.7, color:'#94a3b8' }}>${finding.severity_rationale||'—'}</div>
+          </div>
+
+          ${finding.policy_clause&&html`
+            <div>
+              <div style=${{ fontSize:10, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8 }}>Policy Clause</div>
+              <code style=${{ display:'block', fontSize:12, color:'#7dd3fc', background:'#0a1628', borderRadius:8, padding:'10px 14px', fontFamily:'monospace', whiteSpace:'pre-wrap' }}>${finding.policy_clause}</code>
+            </div>`}
+
+          <div>
+            <div style=${{ fontSize:10, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:12 }}>Evidence Chain (${evs.length})</div>
+            ${evs.length===0
+              ? html`<div style=${{fontSize:12,color:'#1e3a5f'}}>No evidence recorded</div>`
+              : evs.map((ev,i) => html`
+                  <div key=${i} style=${{display:'flex',gap:12}}>
+                    <div style=${{display:'flex',flexDirection:'column',alignItems:'center',width:16,flexShrink:0}}>
+                      <div style=${{width:10,height:10,borderRadius:'50%',background:i===0?c.ch:'#1e3a5f',marginTop:3,boxShadow:i===0?`0 0 8px ${c.ch}60`:''}}></div>
+                      ${i<evs.length-1&&html`<div style=${{width:2,flex:1,background:'#0f172a',margin:'4px 0',minHeight:14}}></div>`}
+                    </div>
+                    <div style=${{paddingBottom:14,flex:1,minWidth:0}}>
+                      <div style=${{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
+                        <span style=${{fontSize:9,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'.06em'}}>${ev.key}</span>
+                        ${ev.redacted&&html`<span style=${{fontSize:9,background:'#422006',color:'#fde047',border:'1px solid #713f12',padding:'1px 5px',borderRadius:3}}>REDACTED</span>`}
+                      </div>
+                      <div class="mono" style=${{fontSize:11,color:'#e2e8f0',wordBreak:'break-all',background:'#0a1628',borderRadius:6,padding:'6px 10px',lineHeight:1.6}}>${ev.value||'—'}</div>
+                    </div>
+                  </div>`)
+            }
+          </div>
+
+          ${refs.length>0&&html`
+            <div>
+              <div style=${{ fontSize:10, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:10 }}>Compliance Controls</div>
+              <div>${refs.map((r,i)=>html`<${Chip} key=${i} text=${r}/>`)}</div>
+            </div>`}
+
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ── Findings table ──────────────────────────────────────────────────────── */
+function FindingsTable({ findings, onSelect }) {
+  const [sev,   setSev]   = useState('');
+  const [agent, setAgent] = useState('');
+  const [q,     setQ]     = useState('');
+
+  const agents = useMemo(()=>[...new Set(findings.map(f=>f.agent_id))].sort(), [findings]);
+
+  const rows = useMemo(()=>findings.filter(f=>{
+    if(sev   && f.severity!==sev)   return false;
+    if(agent && f.agent_id!==agent) return false;
+    if(q && !JSON.stringify(f).toLowerCase().includes(q.toLowerCase())) return false;
+    return true;
+  }), [findings,sev,agent,q]);
+
+  const sel = { background:'#0a1628', border:'1px solid #1e3a5f', color:'#94a3b8', padding:'5px 10px', borderRadius:7, fontSize:11 };
+  const TH  = s => html`<th style=${{ padding:'9px 16px', textAlign:'left', fontSize:9, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.07em', whiteSpace:'nowrap', background:'#070f20', borderBottom:'1px solid rgba(30,58,138,.3)' }}>${s}</th>`;
+
+  return html`
+    <div class="card" style=${{ overflow:'hidden' }}>
+      <div style=${{ padding:'14px 20px', borderBottom:'1px solid rgba(30,58,138,.3)', display:'flex', alignItems:'center', flexWrap:'wrap', gap:10 }}>
+        <span style=${{ fontWeight:700, fontSize:13, color:'#e2e8f0' }}>Findings</span>
+        <span style=${{ fontSize:10, color:'#334155' }}>${rows.length!==findings.length?`${rows.length} of ${findings.length}`:`${findings.length} total`}</span>
+        <div style=${{ marginLeft:'auto', display:'flex', gap:8, flexWrap:'wrap' }}>
+          <select value=${sev} onChange=${e=>setSev(e.target.value)} style=${sel}>
+            <option value="">All Severities</option>
+            ${['critical','high','medium','low','info'].map(s=>html`<option key=${s} value=${s}>${s[0].toUpperCase()+s.slice(1)}</option>`)}
+          </select>
+          <select value=${agent} onChange=${e=>setAgent(e.target.value)} style=${sel}>
+            <option value="">All Agents</option>
+            ${agents.map(a=>html`<option key=${a} value=${a}>${a}</option>`)}
+          </select>
+          <input value=${q} onInput=${e=>setQ(e.target.value)} placeholder="Search…"
+            style=${{...sel, color:'#e2e8f0', width:210}}/>
+        </div>
+      </div>
+
+      <div style=${{ overflowX:'auto', maxHeight:420, overflowY:'auto' }}>
+        <table style=${{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+          <thead><tr>${['Time','Agent','Severity','Rule','Title','Controls','→'].map(h=>TH(h))}</tr></thead>
+          <tbody>
+            ${rows.length===0
+              ? html`<tr><td colspan="7" style=${{textAlign:'center',padding:'52px',color:'#1e3a5f',fontSize:13}}>
+                  ${findings.length===0?'✅ System clean — no findings':'🔍 No findings match filters'}
+                </td></tr>`
+              : rows.map(f => {
+                  const refs = parseJ(f.control_refs);
+                  const evs  = parseJ(f.evidence);
+                  return html`
+                    <tr key=${f.finding_id} class="trow" onClick=${()=>onSelect(f)} style=${{ borderBottom:'1px solid rgba(10,20,40,.9)' }}>
+                      <td style=${{padding:'10px 16px',color:'#334155',whiteSpace:'nowrap'}}>${fmtT(f.ts)}</td>
+                      <td style=${{padding:'10px 16px'}}><span class="mono" style=${{fontSize:11,color:'#7dd3fc'}}>${f.agent_id}</span></td>
+                      <td style=${{padding:'10px 16px'}}><${SevBadge} sev=${f.severity}/></td>
+                      <td style=${{padding:'10px 16px'}}><span class="mono" style=${{fontSize:10,color:'#475569'}}>${f.rule_id}</span></td>
+                      <td style=${{padding:'10px 16px',color:'#cbd5e1',maxWidth:240}}><div style=${{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>${f.title}</div></td>
+                      <td style=${{padding:'10px 16px'}}>
+                        <div style=${{display:'flex',gap:2,flexWrap:'wrap'}}>
+                          ${refs.slice(0,2).map((r,i)=>html`<${Chip} key=${i} text=${r}/>`)}
+                          ${refs.length>2&&html`<span style=${{fontSize:9,color:'#334155',alignSelf:'center'}}>+${refs.length-2}</span>`}
+                        </div>
+                      </td>
+                      <td style=${{padding:'10px 16px',color:'#4338ca',fontSize:11}}>${evs.length} →</td>
+                    </tr>`;
+                })
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+/* ── Events feed ─────────────────────────────────────────────────────────── */
+function EventsFeed({ events }) {
+  const [open, setOpen] = useState(true);
+  const TH = s => html`<th style=${{ padding:'8px 16px', textAlign:'left', fontSize:9, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.06em', whiteSpace:'nowrap', background:'#070f20', borderBottom:'1px solid rgba(30,58,138,.3)' }}>${s}</th>`;
+
+  return html`
+    <div class="card" style=${{ overflow:'hidden' }}>
+      <div style=${{ padding:'14px 20px', borderBottom:'1px solid rgba(30,58,138,.3)', display:'flex', alignItems:'center', gap:10, cursor:'pointer', userSelect:'none' }} onClick=${()=>setOpen(!open)}>
+        <span style=${{ fontWeight:700, fontSize:13, color:'#e2e8f0' }}>Raw Events Feed</span>
+        <span style=${{ fontSize:10, color:'#334155' }}>${events.length} ingested</span>
+        <span style=${{ marginLeft:'auto', fontSize:11, color:'#334155' }}>${open?'▼ collapse':'▶ expand'}</span>
+      </div>
+      ${open&&html`
+        <div style=${{ overflowX:'auto', maxHeight:300, overflowY:'auto' }}>
+          <table style=${{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+            <thead><tr>${['Time','Agent','Action','Host','Method','Bytes','Model / Tool'].map(h=>TH(h))}</tr></thead>
+            <tbody>
+              ${events.length===0
+                ? html`<tr><td colspan="7" style=${{textAlign:'center',padding:'32px',color:'#1e3a5f'}}>No events yet — run: bash start.sh</td></tr>`
+                : events.map(e => {
+                    const attrs  = (typeof e.attributes==='object'&&e.attributes)?e.attributes:parseJ(e.attributes);
+                    const detail = e.model||e.tool_name||attrs?.provider||'—';
+                    return html`
+                      <tr key=${e.event_id} class="trow" style=${{ borderBottom:'1px solid rgba(10,20,40,.9)' }}>
+                        <td style=${{padding:'7px 16px',color:'#334155',whiteSpace:'nowrap'}}>${fmtT(e.ts)}</td>
+                        <td style=${{padding:'7px 16px'}}><span class="mono" style=${{color:'#7dd3fc'}}>${e.agent_id}</span></td>
+                        <td style=${{padding:'7px 16px'}}><${ActionPill} action=${e.action}/></td>
+                        <td style=${{padding:'7px 16px'}}><span class="mono" style=${{color:'#475569'}}>${e.host||'—'}</span></td>
+                        <td style=${{padding:'7px 16px',color:'#334155'}}>${e.method||'—'}</td>
+                        <td style=${{padding:'7px 16px',color:'#475569'}}>${fmtB(e.bytes_out)}</td>
+                        <td style=${{padding:'7px 16px'}}><span class="mono" style=${{color:'#64748b'}}>${detail}</span></td>
+                      </tr>`;
+                  })
+              }
+            </tbody>
+          </table>
+        </div>`}
+    </div>`;
+}
+
+/* ── Network inventory ───────────────────────────────────────────────────────
+   Network-visibility collector panel (design/DESIGN.md §4.2, FR-29). Modeled
+   on EventsFeed above: same html template-literal style, local TH helper,
+   useState/useMemo filtering, class="card" container. Derives its rows
+   client-side from the existing `events` prop -- no new endpoint, no new
+   fetch, no new App state (DD-6, §3.6).
+
+   "Host/IP" renders `dst_ip` as the primary identifier, with `host` shown
+   only when set (design §2.1.1: host is None for the large majority of
+   capture-derived events, since Sentinel never populates it from a bare
+   dst_ip -- showing a blank/undefined cell there would be wrong; dst_ip is
+   the value that is actually always populated for these events). */
+function NetworkInventory({ events }) {
+  const [agent, setAgent] = useState('');
+  const TH = s => html`<th style=${{ padding:'8px 16px', textAlign:'left', fontSize:9, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.06em', whiteSpace:'nowrap', background:'#070f20', borderBottom:'1px solid rgba(30,58,138,.3)' }}>${s}</th>`;
+
+  const netEvents = useMemo(
+    () => events.filter(e => {
+      const attrs = (typeof e.attributes==='object'&&e.attributes)?e.attributes:parseJ(e.attributes);
+      return attrs?.collector === 'network_scan';
+    }),
+    [events]
+  );
+
+  const agents = useMemo(()=>[...new Set(netEvents.map(e=>e.agent_id))].sort(), [netEvents]);
+
+  const rows = useMemo(()=>netEvents.filter(e=>{
+    if(agent && e.agent_id!==agent) return false;
+    return true;
+  }), [netEvents,agent]);
+
+  const sel = { background:'#0a1628', border:'1px solid #1e3a5f', color:'#94a3b8', padding:'5px 10px', borderRadius:7, fontSize:11 };
+
+  return html`
+    <div class="card" style=${{ overflow:'hidden' }}>
+      <div style=${{ padding:'14px 20px', borderBottom:'1px solid rgba(30,58,138,.3)', display:'flex', alignItems:'center', flexWrap:'wrap', gap:10 }}>
+        <span style=${{ fontWeight:700, fontSize:13, color:'#e2e8f0' }}>Network Inventory</span>
+        <span style=${{ fontSize:10, color:'#334155' }}>${rows.length!==netEvents.length?`${rows.length} of ${netEvents.length}`:`${netEvents.length} total`}</span>
+        <div style=${{ marginLeft:'auto', display:'flex', gap:8, flexWrap:'wrap' }}>
+          <select value=${agent} onChange=${e=>setAgent(e.target.value)} style=${sel}>
+            <option value="">All Agents</option>
+            ${agents.map(a=>html`<option key=${a} value=${a}>${a}</option>`)}
+          </select>
+        </div>
+      </div>
+
+      <div style=${{ overflowX:'auto', maxHeight:300, overflowY:'auto' }}>
+        <table style=${{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+          <thead><tr>${['Time','Agent','Host/IP','Port','Protocol','Service','Coverage'].map(h=>TH(h))}</tr></thead>
+          <tbody>
+            ${rows.length===0
+              ? html`<tr><td colspan="7" style=${{textAlign:'center',padding:'32px',color:'#1e3a5f'}}>No network-visibility events yet — enable the network_scan collector</td></tr>`
+              : rows.map(e => {
+                  const attrs = (typeof e.attributes==='object'&&e.attributes)?e.attributes:parseJ(e.attributes);
+                  return html`
+                    <tr key=${e.event_id} class="trow" style=${{ borderBottom:'1px solid rgba(10,20,40,.9)' }}>
+                      <td style=${{padding:'7px 16px',color:'#334155',whiteSpace:'nowrap'}}>${fmtT(e.ts)}</td>
+                      <td style=${{padding:'7px 16px'}}><span class="mono" style=${{color:'#7dd3fc'}}>${e.agent_id}</span></td>
+                      <td style=${{padding:'7px 16px'}}>
+                        <span class="mono" style=${{color:'#475569'}}>${e.dst_ip||'—'}</span>
+                        ${e.host&&html`<span class="mono" style=${{color:'#334155',fontSize:10,marginLeft:6}}>(${e.host})</span>`}
+                      </td>
+                      <td style=${{padding:'7px 16px',color:'#334155'}}>${e.dst_port??'—'}</td>
+                      <td style=${{padding:'7px 16px',color:'#475569'}}>${e.protocol||'—'}</td>
+                      <td style=${{padding:'7px 16px',color:'#475569'}}>${attrs?.service||'—'}</td>
+                      <td style=${{padding:'7px 16px',color:'#64748b',fontSize:10}}>${attrs?.coverage||'—'}</td>
+                    </tr>`;
+                })
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+/* ── App ─────────────────────────────────────────────────────────────────── */
+function App() {
+  const [stats,    setStats]    = useState(null);
+  const [findings, setFindings] = useState([]);
+  const [events,   setEvents]   = useState([]);
+  const [online,   setOnline]   = useState(false);
+  const [updated,  setUpdated]  = useState(null);
+  const [mode,     setMode]     = useState('connecting'); // 'sse'|'poll'|'connecting'
+  const [cd,       setCd]       = useState(TICK);
+  const [drawer,   setDrawer]   = useState(null);
+
+  const applyUpdate = useCallback((s, f, e) => {
+    setStats(s);
+    setFindings(f||[]);
+    setEvents(e||[]);
+    setOnline(true);
+    setUpdated(new Date().toLocaleTimeString());
+  }, []);
+
+  const fetchAll = useCallback(async () => {
+    try {
+      const [sr, fr, er] = await Promise.all([
+        fetch(`${API}/stats`),
+        fetch(`${API}/findings?limit=500`),
+        fetch(`${API}/events?limit=100`),
+      ]);
+      if(!sr.ok||!fr.ok) throw new Error('api');
+      const [s, f, e] = await Promise.all([sr.json(), fr.json(), er.json()]);
+      applyUpdate(s, f.items, e.items);
+      setCd(TICK);
+    } catch { setOnline(false); }
+  }, [applyUpdate]);
+
+  /* ── SSE connection (primary) ─────────────────────────────────────────── */
+  useEffect(() => {
+    if(typeof EventSource === 'undefined') { setMode('poll'); return; }
+
+    let es = null;
+    let retryTimer = null;
+
+    function connect() {
+      es = new EventSource(`${API}/stream`);
+      es.onopen = () => setMode('sse');
+      es.onmessage = ev => {
+        try {
+          const d = JSON.parse(ev.data);
+          if(d.type === 'update') {
+            applyUpdate(d.stats, d.findings, d.events);
+            setCd('live');
+          }
+        } catch {}
+      };
+      es.onerror = () => {
+        setOnline(false);
+        setMode('poll');
+        es.close();
+        retryTimer = setTimeout(connect, 5000);  // retry SSE after 5s
+      };
+    }
+    connect();
+
+    /* polling fallback — runs always, SSE is just the fast path */
+    fetchAll();
+    const pollId = setInterval(() => {
+      if(mode !== 'sse') fetchAll();
+    }, TICK * 1000);
+
+    return () => {
+      es?.close();
+      clearTimeout(retryTimer);
+      clearInterval(pollId);
+    };
+  }, []);
+
+  /* ── Countdown timer (only shown in poll mode) ────────────────────────── */
+  useEffect(() => {
+    const id = setInterval(() => {
+      if(mode !== 'sse') setCd(c => { if(typeof c === 'number' && c<=1){ fetchAll(); return TICK; } return typeof c==='number'?c-1:TICK; });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [mode, fetchAll]);
+
+  /* ── Keyboard shortcuts ───────────────────────────────────────────────── */
+  useEffect(() => {
+    const h = e => {
+      if(e.key==='Escape') setDrawer(null);
+      if(e.key==='r'&&!e.ctrlKey&&!e.metaKey&&document.activeElement.tagName!=='INPUT') fetchAll();
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, []);
+
+  const doExport = useCallback(() => {
+    const b = new Blob([JSON.stringify({exported_at:new Date().toISOString(),findings,events},null,2)],{type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = `sentinel-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.json`;
+    a.click();
+  }, [findings, events]);
+
+  const by = stats?.by_severity || {};
+
+  return html`
+    <div class="fade-up" style=${{ minHeight:'100vh', background:'#030711' }}>
+
+      <${Header} online=${online} updated=${updated} cd=${mode==='sse'?'live':cd} onRefresh=${fetchAll} onExport=${doExport}/>
+      <${AlertBanner} by=${by} findings=${findings}/>
+
+      <main style=${{ padding:'20px 24px', maxWidth:1640, margin:'0 auto', display:'flex', flexDirection:'column', gap:16 }}>
+
+        ${!online&&html`
+          <div style=${{ background:'linear-gradient(90deg,#450a0a,#1c0505)', border:'1px solid #ef4444', borderRadius:12, padding:'14px 20px', display:'flex', alignItems:'center', gap:12 }}>
+            <span style=${{fontSize:20}}>🔌</span>
+            <div>
+              <div style=${{fontWeight:700,color:'#fca5a5',fontSize:13}}>Cannot connect to Sentinel API at ${API}</div>
+              <div style=${{fontSize:11,color:'#f87171',marginTop:3}}>
+                Run: <code style=${{background:'rgba(0,0,0,.4)',padding:'2px 8px',borderRadius:4,fontFamily:'monospace'}}>bash start.sh</code>
+              </div>
+            </div>
+          </div>`}
+
+        <div style=${{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:10 }}>
+          <${StatCard} label="Critical" value=${by.critical||0} color="#ef4444" glow=${true} icon="🚨"/>
+          <${StatCard} label="High"     value=${by.high||0}     color="#f97316" glow=${true} icon="⚠️"/>
+          <${StatCard} label="Medium"   value=${by.medium||0}   color="#eab308" icon="🟡"/>
+          <${StatCard} label="Low"      value=${by.low||0}      color="#3b82f6" icon="ℹ️"/>
+          <${StatCard} label="Findings" value=${stats?.total_findings||0} icon="📋" sub="${stats?.active_agents||0} active agents"/>
+          <${StatCard} label="Events"   value=${stats?.total_events||0}   icon="📡"/>
+        </div>
+
+        <div style=${{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:12 }}>
+          <${TimelineChart} findings=${findings}/>
+          <${SeverityDonut} by=${by}/>
+        </div>
+
+        <${AgentGrid}     findings=${findings} events=${events}/>
+        <${InsightsRow}   findings=${findings}/>
+        <${FindingsTable}    findings=${findings} onSelect=${setDrawer}/>
+        <${EventsFeed}       events=${events}/>
+        <${NetworkInventory} events=${events}/>
+
+      </main>
+
+      <${EvidenceDrawer} finding=${drawer} onClose=${()=>setDrawer(null)}/>
+    </div>`;
+}
+
+/* ── Mount ───────────────────────────────────────────────────────────────── */
+ReactDOM.createRoot(document.getElementById('root')).render(html`<${App}/>`);
+</script>
+</body>
+</html>

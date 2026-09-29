@@ -1,0 +1,38 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip setuptools
+          pip install -e ".[auth,postgres]" pytest httpx bandit pip-audit
+      - name: Tests
+        run: python -m pytest -q -m "not integration"
+      - name: Scope and size guard
+        run: python scripts/check_scope.py
+      - name: Link check
+        run: python scripts/check_links.py
+      - name: Static analysis (medium+ severity)
+        run: bandit -q -r app/sentinel app/sentinel_sequence -ll
+      # PYSEC-2026-1325 (ecdsa, no fixed release): pulled in by python-jose, but
+      # api/auth.py accepts RS256 only, so ecdsa never verifies a token.
+      - name: Dependency audit
+        run: pip-audit --skip-editable --ignore-vuln PYSEC-2026-1325

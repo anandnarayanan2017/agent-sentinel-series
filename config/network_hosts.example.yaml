@@ -1,0 +1,43 @@
+# config/network_hosts.example.yaml — committed TEMPLATE for the
+# network-visibility collector's address -> agent_id attribution file.
+#
+# Copy this file to `config/network_hosts.yaml` (gitignored -- see
+# .gitignore) and replace the example addresses below with your real
+# agent/M2M hosts. This file is loaded by
+# `app/sentinel/collector/host_map.py:HostMap.from_yaml` and is NOT a policy
+# file: it is never read by `PolicySet`/`AgentPolicy` (policies/*.yaml), and
+# it answers a different question ("which agent identity owns this
+# address?"), not "what is this agent identity allowed to do?".
+# See docs/NETWORK_COLLECTOR.md for the full contract.
+#
+# The addresses in THIS example file are RFC 5737 (TEST-NET-3, 203.0.113.0/24)
+# and RFC 2606 (.example / example.com) documentation ranges -- they are
+# reserved for exactly this purpose and never route on the real Internet.
+# Never commit a real production or internal host here.
+
+version: 1  # required; only version 1 is currently supported
+
+hosts:
+  # An entry WITH the optional `hostname:` label. Per design §2.1.1, a
+  # `hostname:` label is the ONLY sanctioned source of `AgentEvent.host` for
+  # this address -- it is a label, never an allow-list, and it is never used
+  # to perform a live DNS lookup. Omit it and `host` stays `None` (the safe
+  # default) for that address.
+  - address: "203.0.113.10"          # required; IP literal (or a MAC below)
+    agent_id: "recon-bot"            # required; a stable agent identity
+    mac: "aa:bb:cc:dd:ee:01"         # optional secondary key
+    hostname: "recon-bot.example.com"  # optional; see note above
+    description: "recon-bot host, example staging environment"  # optional, free text
+
+  # An entry WITHOUT `hostname:` -- perfectly valid. Events for this address
+  # will carry `host=None` rather than a synthesized or IP-shaped placeholder.
+  - address: "203.0.113.11"
+    agent_id: "payments-copilot"
+
+  # A third example showing an address from a different documentation block
+  # (192.0.2.0/24, TEST-NET-1) -- there is no requirement that every host
+  # come from the same subnet; the loader only cares about `address` and
+  # `agent_id`.
+  - address: "192.0.2.20"
+    agent_id: "kyc-assistant"
+    description: "kyc-assistant host, example dev environment"

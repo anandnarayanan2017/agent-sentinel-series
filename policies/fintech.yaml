@@ -1,0 +1,227 @@
+# Agent Sentinel — Fintech Network Policy
+# Luxembourg regulated fintech: 6 AI agent identities, each with a
+# declared security envelope. Anything outside = explainable finding.
+
+agents:
+
+  # ── Payment Reconciliation ────────────────────────────────────────────
+  - agent_id: recon-bot
+    description: >
+      Reads the internal ledger daily, calls an approved LLM to summarise
+      discrepancies, and emails a reconciliation report to finance. Nothing else.
+    allowed_hosts:
+      - api.anthropic.com
+      - ledger.internal
+      - reports.internal
+    allowed_tools:
+      - read_ledger
+      - send_report
+    allowed_models:
+      - claude-sonnet-4-6
+    max_tool_calls_per_session: 20
+    max_bytes_out_per_call: 100000
+    control_refs:
+      - "DORA Art.10 (anomaly detection)"
+      - "DORA Art.11 (response & recovery)"
+      - "EU AI Act Art.12 (high-risk AI logging, when in scope)"
+      - "CSSF 20/750 as amended (ICT risk; confirm entity scope)"
+
+  # ── KYC / Identity Verification ──────────────────────────────────────
+  - agent_id: kyc-agent
+    description: >
+      Runs customer due-diligence: fetches documents, calls sanctions-screening
+      API, verifies identity via an approved model, writes CDD record.
+    allowed_hosts:
+      - api.anthropic.com
+      - kyc.internal
+      - id-verify.internal
+      - documents.internal
+      - sanctions-api.internal
+    allowed_tools:
+      - verify_identity
+      - check_sanctions
+      - fetch_document
+      - write_cdd_record
+    allowed_models:
+      - claude-sonnet-4-6
+    max_tool_calls_per_session: 50
+    max_bytes_out_per_call: 500000
+    control_refs:
+      - "DORA Art.9 (ICT risk mgmt)"
+      - "EU AI Act Art.13 (transparency)"
+      - "EU AI Act Art.14 (human oversight)"
+      - "CSSF 20/750 as amended (ICT risk; confirm entity scope)"
+
+  # ── Payment Processing ────────────────────────────────────────────────
+  - agent_id: payment-processor
+    description: >
+      Executes approved payment instructions: checks balances, fetches FX rates,
+      routes SEPA / SWIFT transfers via internal payment rails only.
+    allowed_hosts:
+      - api.anthropic.com
+      - payments.internal
+      - swift.internal
+      - sepa.internal
+      - fx-rates.internal
+    allowed_tools:
+      - check_balance
+      - get_exchange_rate
+      - initiate_sepa_transfer
+      - initiate_swift_transfer
+      - confirm_payment
+    allowed_models:
+      - claude-sonnet-4-6
+    max_tool_calls_per_session: 100
+    max_bytes_out_per_call: 50000
+    control_refs:
+      - "DORA Art.9 (ICT risk mgmt)"
+      - "DORA Art.10 (anomaly detection)"
+      - "EU AI Act Art.15 (accuracy)"
+      - "CSSF 20/750 as amended (ICT risk; confirm entity scope)"
+
+  # ── Fraud Detection ───────────────────────────────────────────────────
+  - agent_id: fraud-detector
+    description: >
+      Monitors transaction streams in real-time, scores risk, flags and
+      optionally freezes suspicious accounts. High-volume, low-latency.
+    allowed_hosts:
+      - api.anthropic.com
+      - fraud.internal
+      - transactions.internal
+      - risk.internal
+      - alerts.internal
+    allowed_tools:
+      - query_transaction
+      - compute_risk_score
+      - flag_transaction
+      - freeze_account
+      - send_alert
+    allowed_models:
+      - claude-sonnet-4-6
+      - claude-haiku-4-5-20251001
+    max_tool_calls_per_session: 500
+    max_bytes_out_per_call: 200000
+    control_refs:
+      - "DORA Art.10 (anomaly detection)"
+      - "DORA Art.17 (ICT incident management process)"
+      - "EU AI Act Art.14 (human oversight)"
+      - "CSSF 20/750 as amended (ICT risk; confirm entity scope)"
+
+  # ── Compliance Report Generator ───────────────────────────────────────
+  - agent_id: report-generator
+    description: >
+      Pulls audit logs, generates DORA / CSSF regulatory reports,
+      and submits to the compliance portal. Read-heavy, large outputs expected.
+    allowed_hosts:
+      - api.anthropic.com
+      - compliance.internal
+      - audit-logs.internal
+      - regulator-portal.internal
+    allowed_tools:
+      - fetch_audit_log
+      - generate_report
+      - submit_to_regulator
+      - sign_document
+    allowed_models:
+      - claude-sonnet-4-6
+    max_tool_calls_per_session: 30
+    max_bytes_out_per_call: 2000000
+    control_refs:
+      - "DORA Art.18 (ICT incident classification)"
+      - "DORA Art.19 (major ICT incident reporting)"
+      - "EU AI Act Art.12 (high-risk AI logging, when in scope)"
+
+  # ── Market Data Analyst ───────────────────────────────────────────────
+  - agent_id: data-analyst
+    description: >
+      Fetches market data from approved sources, runs quantitative analysis,
+      exports summaries to internal dashboards. No external writes.
+    allowed_hosts:
+      - api.anthropic.com
+      - market-data.internal
+      - bloomberg.internal
+      - analytics.internal
+      - dashboards.internal
+    allowed_tools:
+      - fetch_market_data
+      - run_backtest
+      - run_analysis
+      - publish_dashboard
+    allowed_models:
+      - claude-sonnet-4-6
+      - claude-haiku-4-5-20251001
+    max_tool_calls_per_session: 150
+    max_bytes_out_per_call: 5000000
+    control_refs:
+      - "DORA Art.10 (anomaly detection)"
+      - "EU AI Act Art.13 (transparency)"
+      - "CSSF 20/750 as amended (ICT risk; confirm entity scope)"
+
+  # ── Azure-hosted Payment Processor (Phase 2 — real Azure OpenAI) ──────
+  - agent_id: azure-payment-processor
+    description: >
+      Payment processor running on Azure OpenAI GPT-4o deployment.
+      Same business function as payment-processor but declared on the
+      Azure cloud model provider.  Sentinel monitors for drift, exfil,
+      and shadow model usage just as it does for the Anthropic-hosted twin.
+    allowed_hosts:
+      - agent-sentinel-openai.openai.azure.com   # Azure OpenAI resource endpoint
+      - payments.internal
+      - swift.internal
+      - sepa.internal
+      - fx-rates.internal
+    allowed_tools:
+      - check_balance
+      - get_exchange_rate
+      - initiate_sepa_transfer
+      - initiate_swift_transfer
+      - confirm_payment
+    allowed_models:
+      - gpt-4o
+      - gpt-4o-mini
+    max_tool_calls_per_session: 100
+    max_bytes_out_per_call: 50000
+    control_refs:
+      - "DORA Art.9 (ICT risk mgmt)"
+      - "DORA Art.10 (anomaly detection)"
+      - "EU AI Act Art.15 (accuracy)"
+      - "CSSF 20/750 as amended (ICT risk; confirm entity scope)"
+
+# ── Catch-all for unregistered identities ────────────────────────────────
+# Applied to any agent_id with no entry above. Without this, an unregistered
+# agent receives NO deterministic check at all — not just on its first event,
+# but permanently — so the strongest verdict it could ever draw was a LOW
+# statistical advisory carrying no control references. For a behavioural
+# firewall the unknown-identity posture is the whole question, so it is stated
+# here as an operator-authored clause rather than left to a missing dict key.
+#
+# An `identity.unregistered_agent` finding is raised alongside these checks
+# (once per session), so onboarding a new agent stays visible rather than
+# silently inheriting the catch-all forever. See docs/adr/0009.
+#
+# KNOWN LIMITATION (security review, PR #20, finding rated HIGH): the
+# engine currently treats an empty allowlist as UNRESTRICTED. So
+# `allowed_tools: []` below does NOT deny tool calls. An unregistered agent
+# can call any tool. The only limit is max_tool_calls_per_session, which is
+# counted per caller-chosen session_id and so is not a real bound. It
+# produces MEDIUM findings, which neither alert nor create approvals by
+# default.
+# `allowed_hosts` and `max_bytes_out_per_call` do apply. Fixed by ADR 0012
+# (`[]` = deny all) in the first delivery run. Do not rely on this envelope
+# to block tools until then.
+default_policy:
+  description: >
+    Narrow catch-all envelope for agent identities that have not been
+    onboarded: approved model provider host only, small payloads. Tool
+    calls are NOT yet denied (see the known limitation above).
+  allowed_hosts:
+    - api.anthropic.com
+  allowed_tools: []
+  max_tool_calls_per_session: 5
+  max_bytes_out_per_call: 10000
+  severity: high
+  control_refs:
+    - "DORA Art.9 (ICT risk mgmt)"
+    - "DORA Art.5 (ICT governance)"
+    - "EU AI Act Art.14 (human oversight)"
+    - "CSSF 20/750 as amended (ICT risk; confirm entity scope)"

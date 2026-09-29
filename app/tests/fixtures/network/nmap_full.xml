@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fixture: NMAP_FIX_FULL. A full-range (-p-) scan result for the same
+     host as nmap_a.xml/nmap_b.xml, additionally exposing port 33445, which
+     is OUTSIDE nmap's default top-1000 TCP port set. Exercises the
+     FULL_RANGE-only-catches-this case (design §4.1, UAT-18, UAT-21). -->
+<nmaprun scanner="nmap" args="nmap -sT -sV -p- -oX - 192.0.2.11" start="1755600000" version="7.94">
+  <host starttime="1755600000" endtime="1755603000">
+    <status state="up" reason="syn-ack" reason_ttl="64"/>
+    <address addr="192.0.2.11" addrtype="ipv4"/>
+    <ports>
+      <port protocol="tcp" portid="22">
+        <state state="open" reason="syn-ack" reason_ttl="64"/>
+        <service name="ssh" product="OpenSSH" version="9.6" method="probed" conf="10"/>
+      </port>
+      <port protocol="tcp" portid="443">
+        <state state="open" reason="syn-ack" reason_ttl="64"/>
+        <service name="https" product="nginx" version="1.25.3" method="probed" conf="10"/>
+      </port>
+      <port protocol="tcp" portid="33445">
+        <state state="open" reason="syn-ack" reason_ttl="64"/>
+        <service name="unknown" method="probed" conf="5"/>
+      </port>
+    </ports>
+  </host>
+  <runstats>
+    <finished time="1755603000" timestr="Thu Aug 20 00:50:00 2026" elapsed="3000.00" summary="Nmap done" exit="success"/>
+    <hosts up="1" down="0" total="1"/>
+  </runstats>
+</nmaprun>

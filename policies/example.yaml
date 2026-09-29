@@ -1,0 +1,37 @@
+# Agent Sentinel — policy-as-code
+# Each agent identity declares exactly what it is allowed to do. Anything
+# outside this envelope becomes an explainable finding.
+
+agents:
+  - agent_id: recon-bot
+    description: >
+      Payment-reconciliation agent. Reads the internal ledger, calls an approved
+      LLM to summarize discrepancies, and emails a report. Nothing else.
+    allowed_hosts:
+      - api.anthropic.com        # approved model provider
+      - ledger.internal          # internal ledger API
+      - reports.internal         # internal report sink
+    allowed_tools:
+      - read_ledger
+      - send_report
+    allowed_models:
+      - claude-sonnet-4-6
+    max_tool_calls_per_session: 20
+    max_bytes_out_per_call: 100000      # 100 KB; reports are small
+    severity: high
+    control_refs:
+      - "DORA Art.10 (anomaly detection)"
+      - "DORA Art.11 (response & recovery)"
+      - "EU AI Act Art.12 (high-risk AI logging, when in scope)"
+      - "CSSF 20/750 as amended (ICT risk; confirm entity scope)"
+
+# An unregistered agent_id (no entry above) draws an
+# `identity.unregistered_agent` finding, once per session. To also give such
+# identities real deterministic enforcement rather than only flagging them,
+# add a top-level `default_policy:` block — see policies/fintech.yaml for a
+# worked catch-all example (and its known `allowed_tools: []` limitation),
+# and docs/adr/0009 for the reasoning.
+#
+# Per-rule severity can be tuned without editing code:
+#   severity_overrides:
+#     net.oversize_egress: medium
