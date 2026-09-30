@@ -1,21 +1,19 @@
-Start small: before blocking agent behavior, record it well enough that a CISO can trust the evidence.
+Most security tools start with blocking. I started with recording.
 
-A lot of security tooling builds the enforcement layer first, because blocking things feels like the real work. We deliberately did the opposite.
+Why? Because a monitor that can take down your payment process the first time it hiccups is worse than no monitor at all.
 
-Phase one of Agent Sentinel didn't touch a single real model call. It ran entirely on simulated fintech traffic: a reconciliation bot going about its normal business, plus a scripted attack scenario, both feeding the same pipeline a live agent would use later.
+So Agent Sentinel was built in two steps. First, prove the recording and the rule checks on simulated fintech traffic, where nothing real is at risk. Only then point it at real AI model calls.
 
-The point wasn't to fake a demo. It was to prove the recording and policy-check logic was trustworthy before wiring it to anything that could move money or touch customer data.
+And one rule I didn't compromise on: if the recorder is ever unreachable, the agent's work still goes through. The gap is logged, visible, and fixable. The payment still settles.
 
-Only once that held up did phase two swap the simulator for real calls to Azure OpenAI and Anthropic, through a thin wrapper around each provider's SDK. Same pipeline, same policy engine, now watching real traffic.
+Recording can fail open. Blocking, later, won't get to.
 
-One deliberate choice came with it: if the recorder is ever unreachable, the agent's real work still goes through. A monitoring system that can accidentally take down production the moment it hiccups is worse than no monitoring at all.
+For a regulated firm, that ordering is what makes a new control something operations will accept rather than quietly work around.
 
-Recording can fail open. Enforcement, later, won't get to.
+This is Part 2 of a 10-part series on building it.
 
-That ordering holds up as a general rule for anything sitting this close to regulated systems: prove it on safe data first, then point it at real traffic, and fail toward availability while you're still just recording.
+Where would you draw the line between complete recording and never getting in the way?
 
-Where would you draw the line between recording everything and failing safe if recording breaks?
+![Simulation to real models](../images/02-simulation-to-real-models-1.png)
 
-![Diagram for this post: simulation to real models](../images/02-simulation-to-real-models-1.png)
-
-Read the full article: https://anandnarayanan.net/blog/agent-sentinel-02-simulation-to-real-models/
+First comment: Read the full article → https://anandnarayanan.net/blog/agent-sentinel-02-simulation-to-real-models/

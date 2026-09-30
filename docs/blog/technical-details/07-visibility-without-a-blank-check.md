@@ -4,17 +4,39 @@
 
 ## In plain terms
 
-**Example.** Suppose someone's laptop, not an AI agent's machine, happens to send traffic across the same network segment the tool is watching. Because that laptop's address was never added to the approved list, its traffic hits the identity check, fails to match anything, and gets dropped on the spot — logged only as "saw an address we don't recognize," with no content, no attribution, no record created. The tool never mistakes it for agent traffic, and it never gets folded into anyone's findings. Only traffic from the specific, pre-named machines an operator explicitly listed ever makes it past that first check.
+**Example.** Someone's laptop, not an agent's machine, sends traffic across
+the same network the tool is watching. Its address was never added to the
+list, so the traffic is dropped on the spot and logged only as "an address we
+don't recognise": no content, no attribution, no finding. Only traffic from
+machines an operator explicitly named ever reaches the checks.
 
-That last point matters more than it sounds. Live capture passively observes packets on the chosen interface; the separate inventory mode actively sends port-scan probes. Both require an explicit human choice because one affects traffic privacy and the other generates network traffic.
+**Why it matters.** The right question for any new monitoring capability isn't
+"can it see more", it's "who has to worry about it now." A tool scoped this
+tightly is one your own security review can approve without a long list of
+caveats.
 
-**Why it matters.** The right question for any new monitoring capability isn't "can it see more" — it's "who has to worry about it now." A tool scoped this tightly is one your own security review can approve without a long list of caveats.
+## Business value
+
+**What it adds.**
+
+- **Only the machines you name.** It watches a list of individual addresses;
+  it never sweeps a network or a range.
+- **No guessing whose traffic it is.** Every address is mapped in advance to a
+  named agent; anything else is dropped, with only the address logged.
+- **Off until you decide twice.** Nothing runs until someone writes the list
+  and separately switches monitoring on.
+
+**In one line.** Network visibility that can't turn into surveillance.
+
+**What it doesn't do (yet).** Each list entry is a single address, not a
+range, and live watching and port scanning both stay off until an operator
+enables them.
 
 ## Design and implementation
 
 Closing the blind spot from Part 6 the wrong way creates a worse problem than the one it solves: a tool that captures or probes traffic on a network you don't fully own is itself a compliance and trust liability. So the design constraint that shaped [`app/sentinel/collector/network_scan.py`](../../../app/sentinel/collector/network_scan.py) from the start wasn't "see more" — it was "see only what's explicitly authorized, and prove it never sees anything else."
 
-## Two modes, one allow-list
+### Two modes, one allow-list
 
 The collector runs two distinct modes against the same operator-authored address allow-list, never a subnet sweep. Host-map loading rejects CIDRs, ranges, and hostnames: each `address` must parse as one IPv4 or IPv6 literal.
 
@@ -23,7 +45,7 @@ The collector runs two distinct modes against the same operator-authored address
 
 [`docs/adr/0008-nmap-tshark-network-collector.md`](../../../docs/adr/0008-nmap-tshark-network-collector.md)'s Decision section is explicit that this is "a configured allow-list of agent/M2M host addresses (never a full subnet sweep)," and the ADR's Alternatives table rejects full subnet/LAN scanning outright: it's out of product scope, would misrepresent what the tool is for, and would create noise from devices that have no agent relationship at all.
 
-## Identity is looked up, never inferred
+### Identity is looked up, never inferred
 
 The second constraint is just as deliberate: an address is only ever attributed to an `agent_id` through an explicit, operator-authored mapping — never guessed from traffic patterns. [`app/sentinel/collector/host_map.py`](../../../app/sentinel/collector/host_map.py) implements this as `HostMap`, loaded from `config/network_hosts.yaml` (a committed template, [`config/network_hosts.example.yaml`](../../../config/network_hosts.example.yaml), documents the shape). `HostMap.resolve()` does a straight dictionary lookup by address or MAC and returns `None` — never a placeholder identity — when nothing matches.
 
@@ -31,7 +53,7 @@ The ADR's Alternatives table rejects the tempting shortcut here too: inferring a
 
 This lookup is also structurally separate from the policy engine. `AgentPolicy.allowed_hosts` (checked in `detection/policy.py`) answers "what is this already-identified agent allowed to talk to." `HostMap` answers the opposite-direction question — "which agent owns this address" — *before* an `AgentEvent`, and therefore an `agent_id`, exists at all. The ADR's own Revision History records that an early draft conflated these two lookups; the accepted design keeps them in genuinely separate modules (`collector/host_map.py` is outside `detection/` entirely) so they can never be cross-loaded or confused.
 
-## What happens to an address that isn't mapped
+### What happens to an address that isn't mapped
 
 ```mermaid
 flowchart TD
@@ -44,7 +66,7 @@ flowchart TD
 
 Both `parse_ek_line()` (live capture) and `InventoryJob._diff_and_emit()` (inventory) call `host_map.resolve()` before constructing an `AgentEvent`, and both log and return without emitting on a miss. The live supervisor increments its unattributable-record drop counter; the inventory job logs the rejected result. Traffic from an unmapped address is never ingested under a synthesized or placeholder identity.
 
-## Off by default, and it stays that way until you say twice
+### Off by default, and it stays that way until you say twice
 
 Both `CaptureConfig.enabled` and `ScanJobConfig.enabled` default to `False` ([`app/sentinel/collector/scan_config.py`](../../../app/sentinel/collector/scan_config.py)). [`docs/NETWORK_COLLECTOR.md`](../../../docs/NETWORK_COLLECTOR.md)'s scan-authorization statement distinguishes the two: live tshark capture passively observes packets for allow-listed hosts on the selected interface, while nmap inventory actively sends port-scan probes. Either mode requires an explicit operator choice; only inventory generates probe traffic.
 

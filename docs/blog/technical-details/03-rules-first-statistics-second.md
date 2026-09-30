@@ -4,15 +4,40 @@
 
 ## In plain terms
 
-**Example.** Say an agent's session normally looks like: verify identity, check sanctions list, write a case note. One session instead goes: verify identity, check sanctions list, initiate a wire transfer. The rulebook alone might not catch this — a wire transfer could be an allowed action for that agent in isolation. But the pattern layer recognizes this specific sequence is nothing like how that role has ever behaved, and flags it for review with the evidence attached: what was expected next, and what actually happened instead. A human reviewer decides from there — the pattern layer surfaced it, it didn't shut it down unilaterally.
+**Example.** An agent's sessions normally go: verify identity, check the
+sanctions list, write a case note. One session goes: verify identity, check
+the sanctions list, initiate a wire transfer. Each step might be allowed on
+its own, so the rulebook alone may not object. An optional pattern check
+notices the order is nothing like how that role normally behaves, and flags it
+for a human, showing what it expected next and what happened instead.
 
-**Why it matters.** A black-box AI model should never be the only thing standing between your business and a policy violation. Deterministic rules give you an audit trail regulators accept. Pattern recognition adds coverage rules can't reach on their own — but only ever as a second opinion, never the decision-maker.
+**Why it matters.** A black-box AI model should never be the only thing
+standing between your business and a policy violation. Readable rules give you
+an audit trail regulators accept. Pattern recognition adds coverage rules
+can't reach, but only as a second opinion, never the decision-maker.
+
+## Business value
+
+**What it adds.**
+
+- **Decisions an auditor can check.** Every rule-based finding names the exact
+  rule it broke and the evidence.
+- **A second opinion on order.** An optional pattern check can flag steps that
+  happened in a suspicious sequence, which a list of rules can't see.
+- **No black-box verdicts.** The pattern check can only raise a flag; it can
+  never override or replace a rule.
+
+**In one line.** Rules decide; statistics only advise.
+
+**What it doesn't do (yet).** The pattern check ships switched off, its
+published results come from synthetic test data, and small, quiet attacks in
+long sessions are still hard for it to catch. Nothing blocks an action today.
 
 ## Design and implementation
 
 Agent Sentinel is rules-first by design. A black-box model should not be the primary judge of whether another model-powered agent is allowed to move money, call a tool, or exfiltrate data.
 
-## Policy decision tree
+### Policy decision tree
 
 ```mermaid
 flowchart TD
@@ -60,7 +85,7 @@ The important design choice: **the engine never parses raw HTTP**. It only under
 | Explainer | Turning rule outcomes into audit-friendly findings |
 | Storage | Persisting events, findings, approvals, and audit trail |
 
-## When rules aren't enough: teaching Sentinel what normal looks like
+### When rules aren't enough: teaching Sentinel what normal looks like
 
 Rules-first is what a fintech auditor can actually read and trust. But a policy engine checks each event against a static envelope, one call at a time — it cannot see that step 3 came before step 2, or that a normally-idle agent just made fifteen calls in a row, or that this session's *shape* looks nothing like every other session this role has ever run. Those are sequence properties, and sequences need a different kind of model.
 
@@ -74,7 +99,7 @@ AgentEvents -> split_sessions -> Tokenizer -> MarkovModel -> score_session -> ev
 
 Every event becomes a token (`tool:verify_id`, `llm:call`, `net:egress_new_domain`). The model learns, per role, which tokens follow which — then scores a new session by how unlikely its transitions are under that learned distribution.
 
-### The dilution problem
+#### The dilution problem
 
 The first version scored sessions by mean surprise per step (mean negative log-likelihood). It looked reasonable in isolation and turned out to be the wrong metric: a handful of injected malicious steps, diluted across an otherwise-normal ten-step session, barely move an average.
 
@@ -87,7 +112,7 @@ The first version scored sessions by mean surprise per step (mean negative log-l
 
 Mean-NLL missed a quarter to half of the privilege-escalation sessions in evaluation — the injected steps were real outliers, just outvoted by the rest of the session. Switching to the mean of the *k* most surprising steps (top-k surprise) instead of the session-wide mean fixed it: concentrated anomalies stop getting outvoted by the normal steps around them. Same model, different aggregation, F1 0.85 to 0.99.
 
-### Fusion contract — advisory only
+#### Fusion contract — advisory only
 
 `sentinel_sequence` never gets to say no. It sits alongside the Phase 1 statistical baseline as a second advisory signal:
 
@@ -103,11 +128,11 @@ decision point.
 
 Every flagged session comes with the same evidence-chain discipline as a policy finding — not "87% anomalous," but "step 4: after [verify_id -> check_sanctions_list], expected {write_case_note (p=0.71), flag_for_review (p=0.22)}; observed initiate_wire_transfer (p=0.003)."
 
-### What's real today
+#### What's real today
 
 Built and hardened: the tokenizer, order-1/2 Markov scoring, a versioned per-role model registry with atomic publish and integrity checksums, and drift detection (median-surprise-ratio, so a role's prompt/toolset changing legitimately triggers "model stale, retrain" instead of an alert storm). A hardening pass closed ten real bugs found in code review — including a SQL-injection surface in the DuckDB column-mapping config and a TOCTOU gap in model-checksum verification — taking it to 94 passing tests at 95%+ coverage. It is now wired into `detection/engine.py` alongside the policy and baseline layers as an optional, advisory-only L3 layer (`SENTINEL_SEQ_ENABLED`, off by default).
 
-### Stress-testing on a second, harder role
+#### Stress-testing on a second, harder role
 
 `kyc_bot_demo` has 12 actions across 4 templates and 4 fixed attack functions — small enough that near-perfect recall doesn't tell you much about where the model's limits are. `payments_bot_demo` ([`app/sentinel_sequence/data_gen_payments.py`](../../../app/sentinel_sequence/data_gen_payments.py)) doubles the vocabulary to 25 actions across 8 templates, and replaces fixed attack *functions* with a library of 7 attack *primitives* composed 1-2 at a time at randomized injection points — 24 distinct observed attack-label combinations in a 100-session eval, not 4.
 

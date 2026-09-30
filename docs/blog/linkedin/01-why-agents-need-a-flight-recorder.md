@@ -4,7 +4,7 @@ Could you prove what happened?
 
 Most firms running AI agents have logs. Few have evidence. A log says "a request happened." An auditor wants to know which agent did it, what it was allowed to do, and why it mattered.
 
-Under DORA and the EU AI Act, "we think it was fine" is not an answer.
+In a regulated firm, "we think it was fine" is not an answer.
 
 So I made one decision before anything else: record first, block later.
 

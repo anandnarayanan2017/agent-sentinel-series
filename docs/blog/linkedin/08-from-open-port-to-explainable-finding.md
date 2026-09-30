@@ -1,21 +1,21 @@
-New port detected is not a finding a CISO can act on.
+"New port detected" is not a finding a CISO can act on.
 
-Here's what actually turns a packet into evidence.
+A raw scan result is a data point. What makes it evidence is everything around it.
 
-A raw scan result is a data point, not a decision. What makes it useful to a security reviewer, or defensible to an auditor, is everything that happens between "we saw something" and "here's what it means."
+So every network finding in Agent Sentinel has to say three things.
 
-Three things we insist on for every finding this system produces.
+How thorough the check was. A quick scan and a complete scan make different claims, and a quiet quick scan is never presented as a clean bill of health.
 
-It always says exactly how thorough the check was. We run two kinds of scans: a fast one covering the 1,000 most common ports, hourly, and a slow, complete one covering every possible port, once a day. Every finding states which kind produced it. A quiet result from the fast scan is not the same claim as a quiet result from the complete one, and we never let it read that way.
+How serious it really is. A newly opened port is unusual, not proof of a violation, so it's flagged as low severity. I'd rather under-claim than manufacture urgency.
 
-The severity matches what we actually know. A newly open port on a known machine is unusual, worth a look, but it's not proof of a policy violation. So it's flagged as low-severity and advisory, not a high-severity alarm. We'd rather under-claim than manufacture urgency the evidence doesn't support.
+Which obligation it relates to. Every finding cites the regulatory controls an auditor can trace.
 
-Every finding points back to a real compliance obligation. Not a generic anomaly score. A specific reference an auditor can trace, tied to the actual regulatory frameworks this kind of finding falls under.
+Most dashboards can't tell "we checked and it's clean" from "we didn't check."
 
-The diagram traces the full path: a scan result comes in, gets compared against what we've seen before, and only if it's genuinely new becomes a finding with all three of the above attached.
+This is Part 8 of a 10-part series on building it.
 
-The uncomfortable truth about most security tooling: an unlabeled clean result and a we-didn't-actually-check-that result look identical on a dashboard. How does your team tell them apart?
+How does your team tell those two apart?
 
-![Diagram for this post: from open port to explainable finding](../images/08-from-open-port-to-explainable-finding-1.png)
+![From open port to explainable finding](../images/08-from-open-port-to-explainable-finding-1.png)
 
-Read the full article: https://anandnarayanan.net/blog/agent-sentinel-08-from-open-port-to-explainable-finding/
+First comment: Read the full article → https://anandnarayanan.net/blog/agent-sentinel-08-from-open-port-to-explainable-finding/
