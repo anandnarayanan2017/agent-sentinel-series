@@ -178,4 +178,4 @@ Circulars 20/750 and 22/806, including Circular 25/882 for DORA entities' ICT
 third-party services. See the [official-source links in the traceability
 matrix](../TRACEABILITY.md#regulatory-scope).
 
-Back to [Part 1](01-why-agents-need-a-flight-recorder.md) · [series index](../README.md).
+Next: [Part 6 — The Blind Spot Every AI-Agent Firewall Has](06-the-blind-spot-every-agent-firewall-has.md).
