@@ -1,21 +1,19 @@
-Your egress proxy sees the HTTP calls routed through it.
+Your proxy sees the traffic that goes through it.
 
-What does it see when the agent stops asking permission?
+What happens when an agent's traffic doesn't?
 
-Most AI-agent security tools work the same way: put a proxy in front of the agent, and it watches every web request go past. That's real protection, but only if the agent's traffic actually goes through that proxy.
+Most AI-agent monitoring watches web requests passing a checkpoint. That works, as long as the agent uses the checkpoint.
 
-Here's the problem. If an agent's process opens a raw network connection directly, not an API call, not a web request, just a socket, your proxy never sees it. Same if something starts listening for an incoming connection.
+A compromised dependency or a manipulated agent doesn't have to. It can open a direct connection, and your proxy never sees it. Not flagged. Not logged. Nothing.
 
-It's not that this traffic gets logged as unknown. It doesn't get logged at all. There's no partial record. It's a total blind spot.
+So I added a second way of watching: the agent's machine itself, not just the checkpoint. Strictly scoped to the machines your agents run on. Not a network scanner.
 
-For a reconciliation bot or a KYC assistant handling regulated data, that gap matters most exactly when it matters most: a compromised dependency, a prompt injection that gets an agent to run code it shouldn't. None of that has to ask permission from your proxy config. It just needs the network stack to still work, which it always does.
+For a regulated firm, a single blind spot is a single place a serious incident goes unrecorded.
 
-So we built a second way of watching. Instead of only watching the agent's own outgoing calls, we also watch the wire itself, scoped strictly to the machines that matter. Not a general network scanner. A narrow, permissioned view of exactly the hosts your agents run on.
+This is Part 6 of a 10-part series on building it.
 
-The image below shows the gap: what a normal collector sees versus what's actually happening underneath it.
+Does your current monitoring see anything that isn't an API call?
 
-If you run AI agents in production today, does your current monitoring see anything that isn't an API call?
+![The blind spot every agent firewall has](../images/06-the-blind-spot-every-agent-firewall-has-1.png)
 
-![Diagram for this post: the blind spot every agent firewall has](../images/06-the-blind-spot-every-agent-firewall-has-1.png)
-
-Full write-up, with code links: https://github.com/anandnarayanan2017/agent-sentinel-series/blob/main/docs/blog/technical-details/06-the-blind-spot-every-agent-firewall-has.md
+First comment: Read the full article → https://anandnarayanan.net/blog/agent-sentinel-06-the-blind-spot-every-agent-firewall-has/

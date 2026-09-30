@@ -17,7 +17,8 @@ def anchors(path):
 
 bad = []
 for f in glob.glob("**/*.md", recursive=True):
-    for m in re.finditer(r"\]\(([^)\s]+)\)", open(f, encoding="utf-8").read()):
+    text = re.sub(r"```.*?```", "", open(f, encoding="utf-8").read(), flags=re.S)
+    for m in re.finditer(r"\]\(([^)\s]+)\)", text):
         url = m.group(1)
         if url.startswith(("http", "mailto")):
             continue

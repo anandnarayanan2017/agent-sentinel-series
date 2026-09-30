@@ -1,25 +1,21 @@
-Your payment reconciliation agent just called an LLM, invoked a ledger tool, and sent 250KB to a host nobody approved.
+Your payments agent just sent 250KB to a server nobody approved.
 
 Could you prove what happened?
 
-Most teams running AI agents have logs. Fewer have evidence.
+Most firms running AI agents have logs. Few have evidence. A log says "a request happened." An auditor wants to know which agent did it, what it was allowed to do, and why it mattered.
 
-A log tells you an HTTP request happened. It doesn't tell you which agent made the call, which model answered, which tool it invoked next, or whether any of that was actually allowed.
+In a regulated firm, "we think it was fine" is not an answer.
 
-That gap is invisible right up until you need it. An auditor asks for proof. A regulator asks what your KYC assistant did last Tuesday. A security review asks what an agent can actually reach.
+So I made one decision before anything else: record first, block later.
 
-A generic request log answers none of that.
+Agent Sentinel works like a flight recorder. It doesn't fly the plane. It makes sure that whatever an agent does, there is a clear, readable record of it, checked against agreed rules.
 
-So we built Agent Sentinel as a flight recorder first, before anything about blocking or enforcing. Every model call, tool call, and network connection visible through a configured collector gets normalized into one record: which agent, which identity, what it tried to do, what policy said, and why.
+Blocking comes later, on the roadmap. You can't safely block what you can't yet explain.
 
-Detect. Explain. Export. Enforcement comes later, and it's on the roadmap, not in the product today. You can't explain what you didn't record. You shouldn't enforce what you can't explain.
+This is Part 1 of a 10-part series on building it.
 
-This is the first post in a series on how that got built, decision by decision, including the mistakes we caught before they shipped.
+If an auditor asked today what your AI agents did last week, what could you show them?
 
-The image below shows where Agent Sentinel sits: alongside your agents, recording what its collectors can see.
+![Agent Sentinel: a flight recorder for AI agents](../images/01-why-agents-need-a-flight-recorder-1.png)
 
-If an auditor asked you right now what your AI agents did last week, what would you actually be able to show them?
-
-![Diagram for this post: why agents need a flight recorder](../images/01-why-agents-need-a-flight-recorder-1.png)
-
-Full write-up, with code links: https://github.com/anandnarayanan2017/agent-sentinel-series/blob/main/docs/blog/technical-details/01-why-agents-need-a-flight-recorder.md
+First comment: Read the full article → https://anandnarayanan.net/blog/agent-sentinel-01-why-agents-need-a-flight-recorder/

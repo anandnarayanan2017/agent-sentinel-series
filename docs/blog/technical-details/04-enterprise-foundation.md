@@ -4,17 +4,42 @@
 
 ## In plain terms
 
-**Example.** Imagine the system detects an agent sending an unusually large amount of data to an unapproved destination — a high-severity finding by definition. In a PostgreSQL deployment, that finding doesn't just get logged and forgotten between dashboard checks. It lands in an approvals queue, waiting for an authenticated person to decide: was this legitimate, does it need escalation, does the agent need to be paused. The system surfaces it; a human still makes the call. The queue and verified review identity become part of the audit record.
+**Example.** The system detects an agent sending an unusually large amount of
+data to an unapproved destination, a high-severity finding. In a database-
+backed deployment that finding doesn't just sit in a log. It waits in an
+approvals queue for a signed-in person to decide: legitimate, escalate, or
+pause the agent. The reviewer's identity is taken from their sign-in, not
+typed in, and the decision becomes part of the audit record.
 
-We're also upfront about what's still missing: the built-in browser dashboard does not yet perform an Entra sign-in or refresh access tokens, there is no multi-team isolation, policy configuration still lives in files, and there is no message-queue buffer for bursts. The protected API and authenticated collectors are the current foundation; the browser client and broader production controls remain roadmap work.
+**Why it matters.** This is the difference between "we have a demo" and "we
+can pass your vendor security review." Identity, durable storage, an audit
+trail and human sign-off on risk aren't nice-to-haves for a tool touching
+regulated data. They're the actual purchase criteria.
 
-**Why it matters.** This is the difference between "we have a demo" and "we can pass your vendor security review." Identity, durability, auditability, and human sign-off on risk aren't nice-to-haves for a tool touching regulated data — they're the actual purchase criteria.
+## Business value
+
+**What it adds.**
+
+- **Only authorised callers.** Access uses Microsoft Entra ID sign-in, and if
+  sign-in isn't configured the system refuses requests rather than opening
+  up.
+- **Separation of duties.** Sending events, reading findings, approving them
+  and reading the audit trail are separate permissions.
+- **A human signs off on risk.** High-severity findings wait for a named
+  reviewer, and who accessed what is recorded.
+
+**In one line.** The controls a bank's security review asks for, before it
+asks about features.
+
+**What it doesn't do (yet).** The built-in dashboard can't sign users in yet,
+there's no multi-team isolation, policies still live in files, and an
+externally anchored, tamper-proof audit trail is roadmap.
 
 ## Design and implementation
 
 Phase 3 turns the pilot into something a regulated security team can evaluate seriously.
 
-## Phase 3 enterprise architecture
+### Phase 3 enterprise architecture
 
 ```mermaid
 flowchart TB
@@ -74,7 +99,7 @@ flowchart TB
 | Webhook alerting | [`app/sentinel/alerting/webhook.py`](../../../app/sentinel/alerting/webhook.py) | Sends high-signal findings to webhook targets |
 | Log Analytics export | [`app/sentinel/siem/log_analytics.py`](../../../app/sentinel/siem/log_analytics.py) | Pushes findings to Azure Monitor / Log Analytics |
 
-## Enterprise gaps still open
+### Enterprise gaps still open
 
 | Gap | Why It Matters | Roadmap Direction |
 |---|---|---|
@@ -91,7 +116,7 @@ the caller cannot nominate a different reviewer in the request body. The
 current dashboard is therefore a local/dev UI unless it is placed behind an
 auth-aware gateway or replaced with the planned OIDC-capable client.
 
-## The two-gate SDLC behind the code
+### The two-gate SDLC behind the code
 
 Worth showing, not just the runtime architecture: every change goes through two human approval gates. At Gate 1, a human signs off a frozen specification. The design, build, independent code and security review, tests, and user-acceptance testing follow, and nothing reaches production until a human approves the Gate 2 evidence bundle. The full pipeline lives in the main product repository; this trimmed repo carries only the code and docs the series cites. That process discipline is itself part of the "auditable by design" pitch — the same reasoning behind the compliance-control mapping.
 

@@ -1,21 +1,19 @@
-The gap we shipped with, and why closing it wasn't the right call for v1.
+The gaps I shipped with, and why closing them wasn't right for version one.
 
-Closing out this series with the thing most product posts skip: what doesn't work yet, and why we chose not to force it in.
+Most product posts skip this part. I think it's the most important one.
 
-Gap one. If network traffic comes from a machine with no resolvable name, no clean hostname available anywhere, that traffic doesn't get checked against an agent's approved-host list. Not because the check is broken, but because there's nothing to compare.
+Gap one: traffic that carries no destination name isn't checked against an agent's approved list. There's nothing safe to compare, and forcing it would recreate the false-alarm problem from Part 9.
 
-The traffic isn't invisible, we still flag genuinely new open ports, but this one specific rule doesn't reach it yet. Closing this properly means teaching the approval-list rule to understand raw IP addresses safely, without recreating the exact false-alarm bug from yesterday's post. That's a real design decision, not a quick patch, and we're deferring it on purpose.
+Gap two: the network features are built and tested, but switched off. Turning them on is a deliberate step for an operator, not a default.
 
-Gap two. This entire capability ships built, tested, and turned off. Actually running it against a live environment wasn't part of this release. It requires two separate, deliberate steps from an operator before anything happens: naming which machines it's allowed to watch, and switching it on.
+Both are written down where a customer's security team would look.
 
-We treat that the same way we treat any other this-will-actively-touch-production decision: a human call, not a default.
+A security capability that's honest about what it doesn't cover is more trustworthy than one that implies it covers everything.
 
-Neither of these is a secret. Both are written down plainly in our internal docs, the same place a customer's security team would look.
+That's the series: Detect, Explain, Export, with blocking on the roadmap.
 
-If you had to choose: ship a security capability that's honest about what it doesn't cover yet, or wait until it covers everything? We chose the first.
+What would you want covered next?
 
-That's the series. Thanks for following along. What would you want covered next?
+![What this doesnt do yet](../images/10-what-this-doesnt-do-yet-1.png)
 
-![Diagram for this post: what this doesnt do yet](../images/10-what-this-doesnt-do-yet-1.png)
-
-Full write-up, with code links: https://github.com/anandnarayanan2017/agent-sentinel-series/blob/main/docs/blog/technical-details/10-what-this-doesnt-do-yet.md
+First comment: Read the full article → https://anandnarayanan.net/blog/agent-sentinel-10-what-this-doesnt-do-yet/

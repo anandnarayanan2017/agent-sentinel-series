@@ -4,17 +4,39 @@
 
 ## In plain terms
 
-**Example.** An observed egress event carries a hostname outside the agent's approved list. Sentinel records a finding with the agent, destination, rule, and evidence, then can export it to the existing SOC pipeline. A human or external SOAR process can act on it; Agent Sentinel itself does not currently quarantine the agent.
+**Example.** An agent sends data to a destination outside its approved list.
+Agent Sentinel records a finding with the agent, destination, rule and
+evidence, and exports it to the security team's existing tools. An analyst or
+an automated playbook decides what to do next; Agent Sentinel itself doesn't
+pause the agent.
 
-That last part is the real value. Log collection and incident correlation are solved problems; we're not trying to replace them. What's missing from existing SOC tooling today is first-class understanding of what an AI agent specifically did — and that's the gap this fills.
+**Why it matters.** Your security team doesn't need a new screen to watch.
+They need evidence about AI-agent behaviour to arrive, fully formed, inside
+the tools they already trust and already know how to use under pressure. Log
+collection and incident correlation are solved problems; understanding what an
+AI agent specifically did is not.
 
-**Why it matters.** Your security team doesn't need a new screen to watch. They need the evidence about AI-agent behavior to show up, fully formed, inside the tools they already trust and already know how to use under pressure.
+## Business value
+
+**What it adds.**
+
+- **Evidence inside Microsoft Sentinel.** Findings can be sent to Azure Log
+  Analytics, which feeds Microsoft Sentinel, and high-severity findings can
+  trigger webhook alerts.
+- **Findings arrive already explained.** Each one carries the agent, the rule
+  it broke, the evidence and the regulatory control it relates to.
+- **No new console.** Analysts keep working where they already work.
+
+**In one line.** The AI-agent evidence your SIEM doesn't have natively.
+
+**What it doesn't do (yet).** Splunk, ticketing integrations and regulator-
+ready report exports are roadmap, and nothing is blocked or quarantined today.
 
 ## Design and implementation
 
 Microsoft Sentinel and Splunk already do SIEM/SOAR well. Agent Sentinel should export high-fidelity AI-agent findings into them.
 
-## SOC integration architecture
+### SOC integration architecture
 
 ```mermaid
 flowchart LR
@@ -78,7 +100,7 @@ Do not sell Agent Sentinel as an AI SIEM.
 Sell it as the AI-agent runtime control and evidence layer for existing SIEMs.
 ```
 
-## OSS, enterprise, and the moat
+### OSS, enterprise, and the moat
 
 ```mermaid
 mindmap
@@ -129,7 +151,7 @@ mindmap
 | Compliance mappings | Starter pack | Regulated industry packs and evidence exports |
 | Enforcement | Observe/detect | APIM/proxy/block/quarantine are roadmap |
 
-## POC to enterprise grade — the whole arc
+### POC to enterprise grade — the whole arc
 
 | Dimension | Phase 1 POC | Phase 2 Real Pilot | Phase 3 Enterprise Foundation |
 |---|---|---|---|
@@ -144,7 +166,7 @@ mindmap
 | Deployment | Local / Docker | Staging container | Azure Container Apps / AKS roadmap |
 | Product Readiness | Demo | Pilot | Enterprise beta foundation |
 
-### Regulatory scope note
+#### Regulatory scope note
 
 The `control_refs` field helps reviewers navigate to relevant controls; it does
 not certify compliance. DORA Articles 18 and 19 concern incident
@@ -156,4 +178,4 @@ Circulars 20/750 and 22/806, including Circular 25/882 for DORA entities' ICT
 third-party services. See the [official-source links in the traceability
 matrix](../TRACEABILITY.md#regulatory-scope).
 
-Back to [Part 1](01-why-agents-need-a-flight-recorder.md) · [series index](../README.md).
+Next: [Part 6 — The Blind Spot Every AI-Agent Firewall Has](06-the-blind-spot-every-agent-firewall-has.md).

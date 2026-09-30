@@ -2,13 +2,79 @@
 
 > **Reader path:** [LinkedIn post](../linkedin/01-why-agents-need-a-flight-recorder.md) → this design → [code-and-test traceability](../TRACEABILITY.md#publication-traceability)
 
-## In plain terms
+## What is Agent Sentinel?
 
-**Example.** Say a payments-reconciliation agent uses the wrapped model client, an instrumented "read ledger" executor, and a configured proxy to send a 250KB file. Those visible actions become comparable records. If the proxy supplies an external hostname outside the approved list, Sentinel creates a finding naming the agent, destination, rule, and time. It records the violation; it does not yet stop that transfer before it happens.
+AI agents are starting to do real work in banks and fintechs: reconciling
+payments, checking customer identities, drafting regulatory reports. They
+call AI models, use internal tools and send data over the network, often
+without a person watching each step.
 
-**Why it matters.** If a regulator, auditor, or your own board asked "what did your AI agents do last month, and can you prove it was safe," most companies today have no good answer. That's not a technical gap — it's a business risk sitting in plain sight, the same category as not knowing who has access to your production database.
+**Agent Sentinel is a flight recorder for those agents.** It records what
+each agent did, checks it against rules you wrote, and turns anything
+outside those rules into a plain-language finding your security team and
+auditors can read.
 
-This closes that gap before it becomes an incident report.
+It doesn't fly the plane. It makes sure that, whatever happens, there is
+trustworthy evidence of it.
+
+## The use case
+
+A payments-reconciliation agent runs every night. Its job is to read the
+ledger, ask an approved AI model to summarise discrepancies, and email a
+report to finance. Nothing else.
+
+One night it does something different:
+
+1. It reads the ledger. *Allowed.*
+2. It asks the approved model for a summary. *Allowed.*
+3. It sends a 250KB file to a server that isn't on its approved list.
+   *Not allowed.*
+
+Agent Sentinel records all three steps as one timeline for that agent, and
+raises a finding for step 3: which agent, where the data went, which rule it
+broke, when, and which regulatory control that relates to. The finding can
+be exported to the security team's existing SIEM.
+
+Today it records and flags the transfer after it happens. Stopping it before
+it happens is on the roadmap.
+
+## The business problem it solves
+
+Ask most firms what their AI agents did last month, and whether they can
+prove it was safe, and the honest answer is "not really":
+
+- **Logs aren't evidence.** A log says "a request happened." It doesn't say
+  which agent made it, whether it was allowed, or why it matters.
+- **The trail is scattered.** Model calls, tool use and network traffic sit
+  in different systems, owned by different teams.
+- **Auditors need readable answers.** "The model scored it 0.87" can't be
+  checked or challenged. "It broke rule X, here is the evidence" can.
+- **Regulators are asking.** In a regulated firm, "we think it was fine" is
+  not an answer to a question about an automated system.
+
+That isn't a technical gap. It's a business risk, in the same category as
+not knowing who has access to your production database.
+
+**In one line:** Agent Sentinel turns what your AI agents did into evidence
+you can show an auditor.
+
+**What it doesn't do (yet):** it only sees what its collectors are set up to
+see, and it records and flags rather than blocks.
+
+## What's in this series
+
+Ten short parts, each one design decision and why it was made:
+
+1. **Why AI agents need a flight recorder**: this part.
+2. [Record first, block later](02-simulation-to-real-models.md): from simulated traffic to real model calls, and why recording must never break the agent.
+3. [Rules decide, statistics advise](03-rules-first-statistics-second.md): why a readable rulebook comes before any AI model.
+4. [What makes it enterprise-ready](04-enterprise-foundation.md): identity, audit trail and human approvals.
+5. [Feeding the SOC](05-soc-and-whats-next.md): evidence for your existing SIEM, not another dashboard.
+6. [The blind spot](06-the-blind-spot-every-agent-firewall-has.md): traffic that bypasses the proxy.
+7. [Visibility without a blank check](07-visibility-without-a-blank-check.md): watching only the machines you name.
+8. [From open port to finding](08-from-open-port-to-explainable-finding.md): turning a scan result into evidence.
+9. [The bug that never shipped](09-built-to-fail-safe-not-fail-quiet.md): a false-alarm flood caught in design review.
+10. [What it doesn't do yet](10-what-this-doesnt-do-yet.md): the honest limits.
 
 ## Design and implementation
 
@@ -17,7 +83,7 @@ agent, model call, network destination, and either an executed MCP call or a
 model-proposed tool request. It then produces evidence-backed findings. It
 does not claim to observe uninstrumented actions or block them before they run.
 
-## C4 Level 1 — System Context
+### C4 Level 1 — System Context
 
 ```mermaid
 C4Context
@@ -43,7 +109,7 @@ C4Context
   Rel(ciso, auditor, "Provides audit evidence", "DORA / EU AI Act / CSSF evidence")
 ```
 
-## Implementation details
+### Implementation details
 
 The core loop is deliberately small:
 
@@ -62,7 +128,7 @@ collector -> parser -> AgentEvent -> detection engine -> Finding -> storage -> d
 | [`app/sentinel/api/main.py`](../../../app/sentinel/api/main.py) | REST API, SSE stream, approvals, audit log, dashboard serving |
 | [`dashboard/index.html`](../../../dashboard/index.html) | CISO dashboard with live findings, evidence drawer, approvals, events feed |
 
-## Where the AI actually is
+### Where the AI actually is
 
 The question a reader of an AI-security product asks first, answered with
 counted numbers rather than positioning.
@@ -95,7 +161,7 @@ cite a policy clause — `Explainer.build_sequence()` hardcodes
 `policy_clause=None`, so it is structurally incapable of denying anything —
 and fails open at both construction and evaluation.
 
-### Why the boring answer is the design
+#### Why the boring answer is the design
 
 A payments bot gets frozen mid-run and the compliance officer asks why. Two
 possible answers:

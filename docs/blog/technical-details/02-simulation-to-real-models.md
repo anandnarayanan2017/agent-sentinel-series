@@ -4,15 +4,41 @@
 
 ## In plain terms
 
-**Example.** Picture a KYC assistant using one of those wrapped methods. The wrapper sends a small record with best-effort sensitive-value redaction and bounded previews. This lowers exposure; it is not proof that arbitrary free text contains no personal or confidential data. If delivery fails, central evidence is missing for that interval, so operators must monitor the local delivery warnings.
+**Example.** A KYC assistant calls an AI model to summarise a customer file.
+Agent Sentinel records the call, what model answered and which agent asked,
+after masking sensitive values like emails and card numbers on a best-effort
+basis. If Agent Sentinel is briefly unreachable, the assistant carries on
+working; the recording gap is logged locally so operators can see it.
 
-**Why it matters.** This is the difference between a monitoring tool your operations team trusts and one they quietly work around. A monitoring system that can accidentally take down production the moment it hiccups is a worse outcome than a brief recording gap — teams route around tools like that, which defeats the entire purpose. Prove a system is trustworthy on safe data first, then let it watch real traffic, and never let it become the reason a critical process goes down. That ordering is a discipline, not an accident.
+**Why it matters.** This is the difference between a monitoring tool your
+operations team trusts and one they quietly work around. A monitoring system
+that can take down production the moment it hiccups is worse than a brief
+recording gap. Prove it on safe data first, then let it watch real traffic,
+and never let it become the reason a critical process stops.
+
+## Business value
+
+**What it adds.**
+
+- **Works with the AI providers you already use.** Real calls to Azure OpenAI
+  and Anthropic are recorded without changing what the agent does.
+- **Monitoring never takes the agent down.** If recording fails, the agent's
+  work still completes, and the gap is visible rather than silent.
+- **Less sensitive data in the evidence.** Obvious personal and card data is
+  masked before the record leaves the agent.
+
+**In one line.** Real AI model calls, recorded without putting the agent at
+risk.
+
+**What it doesn't do (yet).** It sees only calls made through the supported
+providers' wrappers, masking is best-effort rather than a guarantee, and
+warning or blocking modes are roadmap.
 
 ## Design and implementation
 
 Phase 1 proves the core idea with simulated fintech traffic, deterministic policy checks, DuckDB storage, and a local dashboard. Phase 2 then swaps simulation for real Azure OpenAI / Anthropic calls without changing the core loop.
 
-## Phase 1 — the POC flight recorder
+### Phase 1 — the POC flight recorder
 
 ```mermaid
 flowchart LR
@@ -96,7 +122,7 @@ sequenceDiagram
     API-->>UI: live finding update
 ```
 
-## Phase 2 — real cloud models
+### Phase 2 — real cloud models
 
 ```mermaid
 flowchart TB
@@ -165,7 +191,7 @@ response = client.chat.completions.create(
 | `examples/phase2/.env.example` | Required environment variable template |
 | [`start_phase2.sh`](../../../start_phase2.sh) | One-command Phase 2 launcher |
 
-### Why fail open first?
+#### Why fail open first?
 
 For early observability, Sentinel should not break production agents if the collector is temporarily unavailable.
 
