@@ -14,6 +14,9 @@ That's the series: Detect, Explain, Export, with blocking on the roadmap.
 
 What would you want covered next?
 
-![What this doesnt do yet](../images/10-what-this-doesnt-do-yet-1.png)
+![Diagram: What This Doesn't Do Yet](../images/10-what-this-doesnt-do-yet-1.png)
 
 First comment: Read the full article → https://anandnarayanan.net/blog/agent-sentinel-10-what-this-doesnt-do-yet/
+Code and tests: https://github.com/anandnarayanan2017/agent-sentinel-series
+
+#AIAgents #AIGovernance #DORA #AgentSecurity

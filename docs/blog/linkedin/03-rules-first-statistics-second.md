@@ -13,9 +13,13 @@ Why? Because "the model scored it 0.87" is not an answer you can defend to a reg
 I've also published where the pattern model struggles: small, quiet attacks buried in long sessions.
 
 This is Part 3 of a 10-part series on building it.
+Next week: Part 4, The Enterprise Foundation.
 
 Where have you seen a clever score hide the thing that actually mattered?
 
-![Rules first statistics second](../images/03-rules-first-statistics-second-1.png)
+![Diagram: Rules First, Statistics Second](../images/03-rules-first-statistics-second-1.png)
 
 First comment: Read the full article → https://anandnarayanan.net/blog/agent-sentinel-03-rules-first-statistics-second/
+Code and tests: https://github.com/anandnarayanan2017/agent-sentinel-series
+
+#AIAgents #ExplainableAI #AIGovernance #RegTech

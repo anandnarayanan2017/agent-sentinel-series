@@ -11,9 +11,13 @@ Not a missed detection. A flood of false alarms. And a tool that cries wolf trai
 It was caught in design review, before any of that code existed. The fix: the rule uses a real name or stands aside, and tests prove normal traffic stays quiet.
 
 This is Part 9 of a 10-part series on building it.
+Next week: Part 10, What This Doesn't Do Yet.
 
 Where is your team's cheapest place to catch a mistake like this?
 
-![Built to fail safe not fail quiet](../images/09-built-to-fail-safe-not-fail-quiet-1.png)
+![Diagram: Built to Fail Safe, Not Fail Quiet](../images/09-built-to-fail-safe-not-fail-quiet-1.png)
 
 First comment: Read the full article → https://anandnarayanan.net/blog/agent-sentinel-09-built-to-fail-safe-not-fail-quiet/
+Code and tests: https://github.com/anandnarayanan2017/agent-sentinel-series
+
+#AIAgents #AgentSecurity #SecurityEngineering #Lessons
