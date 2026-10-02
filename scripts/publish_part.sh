@@ -12,6 +12,7 @@
 # Override the source with SOURCE_REPO and SOURCE_REF if needed.
 set -euo pipefail
 
+main() {
 N="${1:?usage: scripts/publish_part.sh N   (N = 1..10)}"
 [[ "$N" =~ ^([1-9]|10)$ ]] || { echo "N must be 1..10" >&2; exit 2; }
 NN=$(printf '%02d' "$N")
@@ -97,3 +98,9 @@ git commit -q -m "Publish Part $N of the Agent Sentinel series"
 echo
 echo "Committed on branch publish-part-$NN. Review with 'git show --stat', then:"
 echo "  git push -u origin publish-part-$NN   # and open a PR into main"
+}
+
+# Everything lives in main() so bash has read the whole script before it
+# switches branches (which can replace this file on disk).
+main "$@"
+exit
