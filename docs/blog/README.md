@@ -40,6 +40,15 @@ Every link in this folder is relative, so the article, the code, and the tests
 always resolve on the same repository version. Run `python scripts/check_links.py` to verify
 every relative link and heading anchor.
 
+## Single source of truth
+
+This repository is the only place the series is written.
+[anandnarayanan.net](https://anandnarayanan.net/) is generated from it at build
+time: each site post is the plain-English part of
+`technical-details/NN-*.md` (everything above "Design and implementation"),
+its image, and the release date from the table below. Edit here, never on the
+site. The LinkedIn posts live in `linkedin/` and link back to the site.
+
 ## Publishing plan
 
 Parts appear in this repository on the Tuesday they are published; rows
