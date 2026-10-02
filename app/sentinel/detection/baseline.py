@@ -35,11 +35,6 @@ class AgentBaseline:
     agent_id: str
     seen_hosts: set[str] = field(default_factory=set)
     seen_tools: set[str] = field(default_factory=set)
-    # (dst_ip, dst_port) pairs observed for this agent identity. NOT seeded
-    # from storage (no `distinct_ports` equivalent of `distinct_hosts` exists
-    # or will be added — see design §2.9's "C-1 interaction" note); starts
-    # empty every process by design.
-    seen_ports: set[tuple[str, int]] = field(default_factory=set)
     bytes_out_samples: "Deque[int]" = field(
         default_factory=lambda: deque(maxlen=_MAX_BYTES_OUT_SAMPLES)
     )
@@ -49,24 +44,11 @@ class AgentBaseline:
             self.seen_hosts.add(e.host)
         if e.tool_name:
             self.seen_tools.add(e.tool_name)
-        dst_ip = getattr(e, "dst_ip", None)
-        dst_port = getattr(e, "dst_port", None)
-        # dst_port==0 is a real (if unusual) value, not "absent" -- must not
-        # be treated as falsy, or traffic to port 0 is silently never tracked.
-        if dst_ip is not None and dst_port is not None:
-            self.seen_ports.add((dst_ip, dst_port))
         if e.bytes_out:
             self.bytes_out_samples.append(e.bytes_out)
 
     def is_new_host(self, host: str | None) -> bool:
         return bool(host) and host not in self.seen_hosts
-
-    def is_new_port(self, dst_ip: str | None, dst_port: int | None) -> bool:
-        return (
-            dst_ip is not None
-            and dst_port is not None
-            and (dst_ip, dst_port) not in self.seen_ports
-        )
 
     def bytes_out_z(self, value: int) -> float:
         """Z-score of a bytes_out value against the learned distribution.

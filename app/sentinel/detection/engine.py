@@ -38,15 +38,6 @@ logger = logging.getLogger("sentinel.detection.sequence")
 # insert-then-evict-if-over-cap OrderedDict convention for session state.
 _MAX_TRACKED_SESSIONS = 10_000
 
-# Network-security control references (design §2.11, "I-11"). Fallback
-# control_refs for baseline.new_listening_port when an agent has no
-# AgentPolicy of its own to supply control_refs from.
-NETWORK_CONTROL_REFS: list[str] = [
-    "DORA Art. 9 (Protection and prevention)",
-    "DORA Art. 10 (Detection)",
-    "EU AI Act Art. 15 (Accuracy, robustness and cybersecurity)",
-]
-
 # Identity control references for `identity.unregistered_agent` (CR-16). An
 # agent acting without a policy entry is an access-management failure before
 # it is a detection one, hence DORA Art. 9 rather than Art. 10 alone.
@@ -348,35 +339,6 @@ class Engine:
                         f"a statistical outlier worth review."
                     ),
                     control_refs=(p.control_refs if p else []),
-                )
-            )
-
-        # network-visibility collector, L2 advisory only (design §2.10, "I-10").
-        # No L1 policy-layer equivalent: _policy_checks is untouched (C-2).
-        dst_ip = getattr(e, "dst_ip", None)
-        dst_port = getattr(e, "dst_port", None)
-        if (
-            e.attributes.get("collector") == "network_scan"
-            and e.attributes.get("capture_mode") == "inventory"
-            and e.attributes.get("net_change") == "new_open_port"
-            and bl.is_new_port(dst_ip, dst_port)
-            and bl.seen_ports
-        ):
-            coverage = e.attributes.get("coverage")
-            coverage_phrase = f" (scanned {coverage})" if coverage else ""
-            out.append(
-                self.explainer.build(
-                    e,
-                    rule_id="baseline.new_listening_port",
-                    title=f"First-seen listening port {dst_port} on {dst_ip}",
-                    severity=Severity.LOW,
-                    policy_clause=None,
-                    reason=(
-                        f"Agent '{e.agent_id}' host '{dst_ip}' has a newly-observed "
-                        f"listening port {dst_port}{coverage_phrase}; it has no prior "
-                        f"history of this port being open."
-                    ),
-                    control_refs=(p.control_refs if p else NETWORK_CONTROL_REFS),
                 )
             )
         return out

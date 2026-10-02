@@ -638,81 +638,6 @@ function EventsFeed({ events }) {
     </div>`;
 }
 
-/* ── Network inventory ───────────────────────────────────────────────────────
-   Network-visibility collector panel (design/DESIGN.md §4.2, FR-29). Modeled
-   on EventsFeed above: same html template-literal style, local TH helper,
-   useState/useMemo filtering, class="card" container. Derives its rows
-   client-side from the existing `events` prop -- no new endpoint, no new
-   fetch, no new App state (DD-6, §3.6).
-
-   "Host/IP" renders `dst_ip` as the primary identifier, with `host` shown
-   only when set (design §2.1.1: host is None for the large majority of
-   capture-derived events, since Sentinel never populates it from a bare
-   dst_ip -- showing a blank/undefined cell there would be wrong; dst_ip is
-   the value that is actually always populated for these events). */
-function NetworkInventory({ events }) {
-  const [agent, setAgent] = useState('');
-  const TH = s => html`<th style=${{ padding:'8px 16px', textAlign:'left', fontSize:9, fontWeight:700, color:'#334155', textTransform:'uppercase', letterSpacing:'.06em', whiteSpace:'nowrap', background:'#070f20', borderBottom:'1px solid rgba(30,58,138,.3)' }}>${s}</th>`;
-
-  const netEvents = useMemo(
-    () => events.filter(e => {
-      const attrs = (typeof e.attributes==='object'&&e.attributes)?e.attributes:parseJ(e.attributes);
-      return attrs?.collector === 'network_scan';
-    }),
-    [events]
-  );
-
-  const agents = useMemo(()=>[...new Set(netEvents.map(e=>e.agent_id))].sort(), [netEvents]);
-
-  const rows = useMemo(()=>netEvents.filter(e=>{
-    if(agent && e.agent_id!==agent) return false;
-    return true;
-  }), [netEvents,agent]);
-
-  const sel = { background:'#0a1628', border:'1px solid #1e3a5f', color:'#94a3b8', padding:'5px 10px', borderRadius:7, fontSize:11 };
-
-  return html`
-    <div class="card" style=${{ overflow:'hidden' }}>
-      <div style=${{ padding:'14px 20px', borderBottom:'1px solid rgba(30,58,138,.3)', display:'flex', alignItems:'center', flexWrap:'wrap', gap:10 }}>
-        <span style=${{ fontWeight:700, fontSize:13, color:'#e2e8f0' }}>Network Inventory</span>
-        <span style=${{ fontSize:10, color:'#334155' }}>${rows.length!==netEvents.length?`${rows.length} of ${netEvents.length}`:`${netEvents.length} total`}</span>
-        <div style=${{ marginLeft:'auto', display:'flex', gap:8, flexWrap:'wrap' }}>
-          <select value=${agent} onChange=${e=>setAgent(e.target.value)} style=${sel}>
-            <option value="">All Agents</option>
-            ${agents.map(a=>html`<option key=${a} value=${a}>${a}</option>`)}
-          </select>
-        </div>
-      </div>
-
-      <div style=${{ overflowX:'auto', maxHeight:300, overflowY:'auto' }}>
-        <table style=${{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
-          <thead><tr>${['Time','Agent','Host/IP','Port','Protocol','Service','Coverage'].map(h=>TH(h))}</tr></thead>
-          <tbody>
-            ${rows.length===0
-              ? html`<tr><td colspan="7" style=${{textAlign:'center',padding:'32px',color:'#1e3a5f'}}>No network-visibility events yet — enable the network_scan collector</td></tr>`
-              : rows.map(e => {
-                  const attrs = (typeof e.attributes==='object'&&e.attributes)?e.attributes:parseJ(e.attributes);
-                  return html`
-                    <tr key=${e.event_id} class="trow" style=${{ borderBottom:'1px solid rgba(10,20,40,.9)' }}>
-                      <td style=${{padding:'7px 16px',color:'#334155',whiteSpace:'nowrap'}}>${fmtT(e.ts)}</td>
-                      <td style=${{padding:'7px 16px'}}><span class="mono" style=${{color:'#7dd3fc'}}>${e.agent_id}</span></td>
-                      <td style=${{padding:'7px 16px'}}>
-                        <span class="mono" style=${{color:'#475569'}}>${e.dst_ip||'—'}</span>
-                        ${e.host&&html`<span class="mono" style=${{color:'#334155',fontSize:10,marginLeft:6}}>(${e.host})</span>`}
-                      </td>
-                      <td style=${{padding:'7px 16px',color:'#334155'}}>${e.dst_port??'—'}</td>
-                      <td style=${{padding:'7px 16px',color:'#475569'}}>${e.protocol||'—'}</td>
-                      <td style=${{padding:'7px 16px',color:'#475569'}}>${attrs?.service||'—'}</td>
-                      <td style=${{padding:'7px 16px',color:'#64748b',fontSize:10}}>${attrs?.coverage||'—'}</td>
-                    </tr>`;
-                })
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>`;
-}
-
 /* ── App ─────────────────────────────────────────────────────────────────── */
 function App() {
   const [stats,    setStats]    = useState(null);
@@ -852,7 +777,6 @@ function App() {
         <${InsightsRow}   findings=${findings}/>
         <${FindingsTable}    findings=${findings} onSelect=${setDrawer}/>
         <${EventsFeed}       events=${events}/>
-        <${NetworkInventory} events=${events}/>
 
       </main>
 

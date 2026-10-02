@@ -19,19 +19,6 @@ from sentinel.schema.events import AgentEvent, Finding
 from sentinel.storage.base import StoreBase
 
 
-#: The five network-visibility columns (design/DESIGN.md §2.1 / §2.7),
-#: appended after `evidence` in this exact order in both backends. Used by
-#: both the fresh CREATE TABLE below and `_migrate_events_table`'s ALTER path
-#: so the two can never drift out of the same order (§5.1's append-only rule).
-_NETWORK_COLUMNS: list[tuple[str, str]] = [
-    ("src_ip", "VARCHAR"),
-    ("dst_ip", "VARCHAR"),
-    ("dst_port", "INTEGER"),
-    ("protocol", "VARCHAR"),
-    ("mac", "VARCHAR"),
-]
-
-
 class Store(StoreBase):
     #: One embedded DuckDB connection, not safe to share across threads —
     #: `Pipeline` serializes its writes accordingly (CR-19).
@@ -58,12 +45,7 @@ class Store(StoreBase):
                 bytes_out   BIGINT,
                 bytes_in    BIGINT,
                 attributes  JSON,
-                evidence    JSON,
-                src_ip      VARCHAR,
-                dst_ip      VARCHAR,
-                dst_port    INTEGER,
-                protocol    VARCHAR,
-                mac         VARCHAR
+                evidence    JSON
             );
             """
         )
@@ -86,41 +68,19 @@ class Store(StoreBase):
             );
             """
         )
-        self._migrate_events_table()
-
-    def _migrate_events_table(self) -> None:
-        """Idempotent migration for a pre-existing `.duckdb` file whose
-        `events` table predates the five network-visibility columns
-        (design/DESIGN.md §5.1). `CREATE TABLE IF NOT EXISTS` above is a
-        no-op against an existing file, so it cannot add these columns.
-
-        No try/except here by design: a failed ALTER must raise and stop
-        `Store.__init__`, never leave the process running against a
-        half-migrated schema (NFR-4, fail-safe not fail-open).
-        """
-        existing = {
-            row[0]
-            for row in self.conn.execute(
-                "SELECT column_name FROM information_schema.columns WHERE table_name = 'events'"
-            ).fetchall()
-        }
-        for name, col_type in _NETWORK_COLUMNS:
-            if name not in existing:
-                self.conn.execute(f"ALTER TABLE events ADD COLUMN {name} {col_type}")
 
     # ---- writes -------------------------------------------------------------
     def insert_event(self, e: AgentEvent) -> None:
         # Columns are named explicitly (design/DESIGN.md §5.3's recommendation)
-        # so the placeholder/column/param count triple (19 == 19 == 19) is
+        # so the placeholder/column/param count triple (14 == 14 == 14) is
         # self-evident and any future drift fails loudly, not silently.
         self.conn.execute(
             """
             INSERT OR REPLACE INTO events (
                 event_id, ts, agent_id, session_id, action,
                 host, method, path, model, tool_name,
-                bytes_out, bytes_in, attributes, evidence,
-                src_ip, dst_ip, dst_port, protocol, mac
-            ) VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?,?, ?,?,?,?,?)
+                bytes_out, bytes_in, attributes, evidence
+            ) VALUES (?,?,?,?,?, ?,?,?,?,?, ?,?,?,?)
             """,
             [
                 e.event_id,
@@ -137,11 +97,6 @@ class Store(StoreBase):
                 e.bytes_in,
                 json.dumps(e.attributes),
                 json.dumps([ev.model_dump() for ev in e.evidence]),
-                e.src_ip,
-                e.dst_ip,
-                e.dst_port,
-                e.protocol,
-                e.mac,
             ],
         )
 

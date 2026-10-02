@@ -20,8 +20,8 @@ Parts are published weekly, one per Tuesday; later parts are marked "coming soon
 | `app/sentinel/` | Collectors, detection engine, explainer, storage, API, SIEM export |
 | `app/sentinel_sequence/` | The optional sequence-anomaly model (advisory only, off by default) |
 | `app/tests/` | Regression tests the traceability matrix points at |
-| `policies/`, `config/` | Example policy and network host-map config |
-| `docs/` | Architecture, compliance mapping, network collector, ADR-0001 and ADR-0008 |
+| `policies/` | Example policy files |
+| `docs/` | Architecture, compliance mapping, ADR-0001 |
 | `examples/`, `dashboard/`, `start_phase2.sh` | Demo agents and the CISO dashboard the posts mention |
 
 ## Run the tests
