@@ -26,21 +26,24 @@ its regression test, and its current-versus-roadmap boundary.
 | # | Part | LinkedIn post | Technical write-up | Main code | Regression test |
 |---|---|---|---|---|---|
 | 1 | Why AI Agents Need a Flight Recorder | [post](linkedin/01-why-agents-need-a-flight-recorder.md) | [read](technical-details/01-why-agents-need-a-flight-recorder.md) | `pipeline.py`, `detection/engine.py` | [`test_pipeline.py`](../../app/tests/test_pipeline.py) |
-| 2 | From Simulated Traffic to Real Model Calls | [post](linkedin/02-simulation-to-real-models.md) | [read](technical-details/02-simulation-to-real-models.md) | `collector/azure_openai.py`, `anthropic_sdk.py`, `redaction.py` | [`test_collector_contracts.py`](../../app/tests/test_collector_contracts.py) |
-| 3 | Rules First, Statistics Second | [post](linkedin/03-rules-first-statistics-second.md) | [read](technical-details/03-rules-first-statistics-second.md) | `detection/engine.py`, `policy.py`, `sequence_layer.py` | [`test_sequence_layer.py`](../../app/tests/test_sequence_layer.py) |
-| 4 | The Enterprise Foundation | [post](linkedin/04-enterprise-foundation.md) | [read](technical-details/04-enterprise-foundation.md) | `api/auth.py`, `api/audit.py`, `storage/pg_store.py` | [`test_auth.py`](../../app/tests/test_auth.py) |
-| 5 | Feeding the SOC, and What's Next | [post](linkedin/05-soc-and-whats-next.md) | [read](technical-details/05-soc-and-whats-next.md) | `siem/log_analytics.py`, `alerting/webhook.py` | [`test_siem_log_analytics.py`](../../app/tests/test_siem_log_analytics.py) |
-| 6 | The Blind Spot Every AI-Agent Firewall Has | [post](linkedin/06-the-blind-spot-every-agent-firewall-has.md) | [read](technical-details/06-the-blind-spot-every-agent-firewall-has.md) | `collector/proxy.py`, `network_scan.py` | [`test_network_capture.py`](../../app/tests/test_network_capture.py) |
-| 7 | Visibility Without a Blank Check | [post](linkedin/07-visibility-without-a-blank-check.md) | [read](technical-details/07-visibility-without-a-blank-check.md) | `collector/host_map.py`, `scan_config.py` | [`test_network_host_map.py`](../../app/tests/test_network_host_map.py) |
-| 8 | From Open Port to Explainable Finding | [post](linkedin/08-from-open-port-to-explainable-finding.md) | [read](technical-details/08-from-open-port-to-explainable-finding.md) | `InventoryJob`, `baseline.new_listening_port` | [`test_network_inventory.py`](../../app/tests/test_network_inventory.py) |
-| 9 | Built to Fail Safe, Not Fail Quiet | [post](linkedin/09-built-to-fail-safe-not-fail-quiet.md) | [read](technical-details/09-built-to-fail-safe-not-fail-quiet.md) | `parse_ek_line`, `net.host_not_allowed` | [`test_network_pipeline.py`](../../app/tests/test_network_pipeline.py) |
-| 10 | What This Doesn't Do Yet | [post](linkedin/10-what-this-doesnt-do-yet.md) | [read](technical-details/10-what-this-doesnt-do-yet.md) | `network_scan.py` capture supervisor, `policy.py` | [`test_network_spec_fidelity_audit.py`](../../app/tests/test_network_spec_fidelity_audit.py) |
+| 2 | From Simulated Traffic to Real Model Calls | coming soon | coming soon | | |
+| 3 | Rules First, Statistics Second | coming soon | coming soon | | |
+| 4 | The Enterprise Foundation | coming soon | coming soon | | |
+| 5 | Feeding the SOC, and What's Next | coming soon | coming soon | | |
+| 6 | The Blind Spot Every AI-Agent Firewall Has | coming soon | coming soon | | |
+| 7 | Visibility Without a Blank Check | coming soon | coming soon | | |
+| 8 | From Open Port to Explainable Finding | coming soon | coming soon | | |
+| 9 | Built to Fail Safe, Not Fail Quiet | coming soon | coming soon | | |
+| 10 | What This Doesn't Do Yet | coming soon | coming soon | | |
 
 Every link in this folder is relative, so the article, the code, and the tests
 always resolve on the same repository version. Run `python scripts/check_links.py` to verify
 every relative link and heading anchor.
 
 ## Publishing plan
+
+Parts appear in this repository on the Tuesday they are published; rows
+marked "coming soon" in the table above are not yet released.
 
 One part per week, on Tuesdays, technical write-up and LinkedIn post in the
 same week. Publish in numeric order: Parts 5 and 10 each close a series and
@@ -60,8 +63,6 @@ column, not individual rows.
 | 2026-12-01 | 9. Built to Fail Safe, Not Fail Quiet | The most shareable post: a real bug caught before shipping |
 | 2026-12-08 | 10. What This Doesn't Do Yet | Close on honesty and the roadmap |
 
-Before the first post: make this repository public (the LinkedIn posts link to
-it by absolute URL), and merge the working branch into `main`.
 
 ## Scope of this repository
 

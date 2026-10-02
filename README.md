@@ -10,6 +10,7 @@ Detect. Explain. Export.   (Enforce is roadmap)
 
 Start at [`docs/blog/README.md`](docs/blog/README.md): each part has a
 plain-English LinkedIn post, a technical write-up, the code it cites, and its tests.
+Parts are published weekly, one per Tuesday; later parts are marked "coming soon" there.
 
 ## Layout
 
