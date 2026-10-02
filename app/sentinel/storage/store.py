@@ -21,7 +21,8 @@ from sentinel.storage.base import StoreBase
 
 class Store(StoreBase):
     #: One embedded DuckDB connection, not safe to share across threads —
-    #: `Pipeline` serializes its writes accordingly (CR-19).
+    #: `Pipeline` serializes its writes accordingly (CR-19); reads use their
+    #: own cursor (see `_query`).
     thread_safe = False
 
     def __init__(self, path: str | Path = ":memory:") -> None:
@@ -121,26 +122,36 @@ class Store(StoreBase):
         )
 
     # ---- reads --------------------------------------------------------------
+    # Reads come straight from the API's worker threads, outside the
+    # Pipeline's write lock, so they must not share `self.conn`: two threads
+    # executing on one DuckDB connection interleave their result sets (a
+    # `/stats` call could read another request's rows and fail). Each read
+    # runs on its own cursor — DuckDB's per-thread handle onto the same
+    # database — so it sees committed data without blocking ingest.
+    def _query(self, sql: str, params: list[Any] | None = None) -> tuple[list[tuple], list[str]]:
+        with self.conn.cursor() as cur:
+            rows = cur.execute(sql, params or []).fetchall()
+            cols = [c[0] for c in cur.description] if cur.description else []
+        return rows, cols
+
     def events_for_agent(self, agent_id: str) -> list[dict[str, Any]]:
-        rows = self.conn.execute(
+        rows, cols = self._query(
             "SELECT * FROM events WHERE agent_id = ? ORDER BY ts", [agent_id]
-        ).fetchall()
-        cols = [c[0] for c in self.conn.description]
+        )
         return [dict(zip(cols, r)) for r in rows]
 
     def list_findings(
         self, limit: int = 100, since: Optional[datetime] = None
     ) -> list[dict[str, Any]]:
         if since is not None:
-            rows = self.conn.execute(
+            rows, cols = self._query(
                 "SELECT * FROM findings WHERE ts > ? ORDER BY ts DESC LIMIT ?",
                 [since, limit],
-            ).fetchall()
+            )
         else:
-            rows = self.conn.execute(
+            rows, cols = self._query(
                 "SELECT * FROM findings ORDER BY ts DESC LIMIT ?", [limit]
-            ).fetchall()
-        cols = [c[0] for c in self.conn.description]
+            )
         result = []
         for r in rows:
             d = dict(zip(cols, r))
@@ -160,15 +171,14 @@ class Store(StoreBase):
         self, limit: int = 50, since: Optional[datetime] = None
     ) -> list[dict[str, Any]]:
         if since is not None:
-            rows = self.conn.execute(
+            rows, cols = self._query(
                 "SELECT * FROM events WHERE ts > ? ORDER BY ts DESC LIMIT ?",
                 [since, limit],
-            ).fetchall()
+            )
         else:
-            rows = self.conn.execute(
+            rows, cols = self._query(
                 "SELECT * FROM events ORDER BY ts DESC LIMIT ?", [limit]
-            ).fetchall()
-        cols = [c[0] for c in self.conn.description]
+            )
         result = []
         for r in rows:
             d = dict(zip(cols, r))
@@ -182,20 +192,18 @@ class Store(StoreBase):
         return result
 
     def stats(self) -> dict[str, Any]:
-        sev_rows = self.conn.execute(
-            "SELECT severity, COUNT(*) FROM findings GROUP BY severity"
-        ).fetchall()
-        findings_row = self.conn.execute("SELECT COUNT(*) FROM findings").fetchone()
-        events_row = self.conn.execute("SELECT COUNT(*) FROM events").fetchone()
-        agents_row = self.conn.execute("SELECT COUNT(DISTINCT agent_id) FROM events").fetchone()
-        # COUNT(*) always yields exactly one row, even over an empty table, so
-        # these three cannot legitimately be None here; if they ever are, the
-        # connection/query is broken and failing loudly beats indexing None.
-        if findings_row is None or events_row is None or agents_row is None:
+        sev_rows, _ = self._query("SELECT severity, COUNT(*) FROM findings GROUP BY severity")
+        # One statement for the three counts so they come from the same snapshot.
+        counts, _ = self._query(
+            "SELECT (SELECT COUNT(*) FROM findings), (SELECT COUNT(*) FROM events), "
+            "(SELECT COUNT(DISTINCT agent_id) FROM events)"
+        )
+        # A scalar SELECT always yields exactly one row, even over empty
+        # tables; if it ever doesn't, the connection is broken and failing
+        # loudly beats indexing None.
+        if len(counts) != 1:
             raise RuntimeError("stats() aggregate query returned no row — storage connection issue")
-        total_findings = findings_row[0]
-        total_events = events_row[0]
-        active_agents = agents_row[0]
+        total_findings, total_events, active_agents = counts[0]
         return {
             "by_severity": {r[0]: r[1] for r in sev_rows},
             "total_findings": total_findings,
@@ -204,10 +212,10 @@ class Store(StoreBase):
         }
 
     def distinct_hosts(self, agent_id: str) -> set[str]:
-        rows = self.conn.execute(
+        rows, _ = self._query(
             "SELECT DISTINCT host FROM events WHERE agent_id = ? AND host IS NOT NULL",
             [agent_id],
-        ).fetchall()
+        )
         return {r[0] for r in rows}
 
     def close(self) -> None:
