@@ -3,6 +3,7 @@
 # source repo (agent-sentinel-lite, branch series-full-backup).
 #
 #   scripts/publish_part.sh N          # N = 2..10; creates branch publish-part-NN
+#   scripts/publish_part.sh A-B        # a range, e.g. 2-5; one branch, one commit
 #
 # It copies Part N's LinkedIn post, technical write-up and image, restores its
 # row in docs/blog/README.md and docs/blog/TRACEABILITY.md, re-links earlier
@@ -13,9 +14,12 @@
 set -euo pipefail
 
 main() {
-N="${1:?usage: scripts/publish_part.sh N   (N = 1..10)}"
-[[ "$N" =~ ^([1-9]|10)$ ]] || { echo "N must be 1..10" >&2; exit 2; }
-NN=$(printf '%02d' "$N")
+ARG="${1:?usage: scripts/publish_part.sh N | A-B   (parts 1..10)}"
+[[ "$ARG" =~ ^([1-9]|10)(-([1-9]|10))?$ ]] || { echo "argument must be N or A-B, parts 1..10" >&2; exit 2; }
+FIRST="${ARG%-*}"; LAST="${ARG#*-}"
+(( FIRST <= LAST )) || { echo "range is backwards" >&2; exit 2; }
+BRANCH="publish-part-$(printf '%02d' "$FIRST")"
+[[ "$FIRST" == "$LAST" ]] || BRANCH="publish-parts-$(printf '%02d' "$FIRST")-$(printf '%02d' "$LAST")"
 SOURCE_REPO="${SOURCE_REPO:-https://github.com/anandnarayanan2017/agent-sentinel-lite}"
 SOURCE_REF="${SOURCE_REF:-series-full-backup}"
 
@@ -23,10 +27,11 @@ cd "$(git rev-parse --show-toplevel)"
 [[ -z "$(git status --porcelain)" ]] || { echo "working tree not clean" >&2; exit 1; }
 
 git fetch -q origin main
-git checkout -q -B "publish-part-$NN" origin/main
+git checkout -q -B "$BRANCH" origin/main
 git fetch -q "$SOURCE_REPO" "$SOURCE_REF"
 SRC=FETCH_HEAD
 
+for N in $(seq "$FIRST" "$LAST"); do
 python3 - "$N" "$SRC" <<'PY'
 import glob, os, re, subprocess, sys
 
@@ -88,16 +93,17 @@ idx = max(i for i, l in enumerate(lines)
 lines.insert(idx + 1, trow)
 open(p, "w", encoding="utf-8").write("\n".join(lines))
 PY
+done
 
 python3 scripts/check_links.py
 python3 scripts/check_scope.py
 python3 -m pytest -q -m "not integration"
 
 git add -A
-git commit -q -m "Publish Part $N of the Agent Sentinel series"
+git commit -q -m "Publish Part${LAST:+s} $ARG of the Agent Sentinel series"
 echo
-echo "Committed on branch publish-part-$NN. Review with 'git show --stat', then:"
-echo "  git push -u origin publish-part-$NN   # and open a PR into main"
+echo "Committed on branch $BRANCH. Review with 'git show --stat', then:"
+echo "  git push -u origin $BRANCH   # and open a PR into main"
 }
 
 # Everything lives in main() so bash has read the whole script before it
