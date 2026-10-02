@@ -66,10 +66,10 @@ see, and it records and flags rather than blocks.
 Ten short parts, each one design decision and why it was made:
 
 1. **Why AI agents need a flight recorder**: this part.
-2. Record first, block later: from simulated traffic to real model calls, and why recording must never break the agent.
-3. Rules decide, statistics advise: why a readable rulebook comes before any AI model.
-4. What makes it enterprise-ready: identity, audit trail and human approvals.
-5. Feeding the SOC: evidence for your existing SIEM, not another dashboard.
+2. [Record first, block later](02-simulation-to-real-models.md): from simulated traffic to real model calls, and why recording must never break the agent.
+3. [Rules decide, statistics advise](03-rules-first-statistics-second.md): why a readable rulebook comes before any AI model.
+4. [What makes it enterprise-ready](04-enterprise-foundation.md): identity, audit trail and human approvals.
+5. [Feeding the SOC](05-soc-and-whats-next.md): evidence for your existing SIEM, not another dashboard.
 6. The blind spot: traffic that bypasses the proxy.
 7. Visibility without a blank check: watching only the machines you name.
 8. From open port to finding: turning a scan result into evidence.
@@ -190,4 +190,4 @@ and the attacks. `docs/EVAL_PAYMENTS_BOT.md` calls this the "author-designed
 validity ceiling" and declines to present the numbers as real-world
 performance.
 
-Next: Part 2 — From Simulated Traffic to Real Model Calls.
+Next: [Part 2 — From Simulated Traffic to Real Model Calls](02-simulation-to-real-models.md).
