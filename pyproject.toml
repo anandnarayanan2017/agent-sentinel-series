@@ -24,7 +24,7 @@ anthropic = ["anthropic>=0.30"]
 cloud     = ["openai>=1.30", "anthropic>=0.30"]
 # Phase 3 — persistent storage + SIEM
 postgres  = ["psycopg2-binary>=2.9"]
-siem      = ["psycopg2-binary>=2.9", "azure-monitor-ingestion>=1.0", "azure-identity>=1.15"]
+siem      = ["psycopg2-binary>=2.9", "azure-monitor-ingestion>=1.0", "azure-identity>=1.25.3"]
 auth      = ["msal>=1.28", "python-jose[cryptography]>=3.4"]
 # Development
 dev = [
