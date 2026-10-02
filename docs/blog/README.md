@@ -51,26 +51,28 @@ site. The LinkedIn posts live in `linkedin/` and link back to the site.
 
 ## Publishing plan
 
-Parts appear in this repository on the Tuesday they are published; rows
-marked "coming soon" in the table above are not yet released.
+A part is released when it lands in this repository: the technical write-up
+goes live on the site (see "On the site") and its code and tests are here.
+Rows marked "coming soon" in the table above are not yet released.
 
-One part per week, on Tuesdays, technical write-up and LinkedIn post in the
-same week. Publish in numeric order: Parts 5 and 10 each close a series and
-refer back to the parts before them. If a week is missed, shift the whole
-column, not individual rows.
+Parts 1-5 are on the site now. LinkedIn posts still go out one per week, on
+Tuesdays, in numeric order: Parts 5 and 10 each close a series and refer back
+to the parts before them. Parts 6-10 reach the site and this repository's code
+on their LinkedIn week. If a week is missed, shift the whole column, not
+individual rows.
 
-| Week of | Part | Goal |
-|---|---|---|
-| 2026-10-06 | 1. Why AI Agents Need a Flight Recorder | Establish the problem |
-| 2026-10-13 | 2. From Simulated Traffic to Real Model Calls | Show the working MVP and the real-SDK pivot |
-| 2026-10-20 | 3. Rules First, Statistics Second | Build technical credibility, including the sequence-model pivot |
-| 2026-10-27 | 4. The Enterprise Foundation | Show what makes it serious for CISOs |
-| 2026-11-03 | 5. Feeding the SOC, and What's Next | Clarify positioning and roadmap; series 1 closes |
-| 2026-11-10 | 6. The Blind Spot Every AI-Agent Firewall Has | Reopen on a concrete new capability |
-| 2026-11-17 | 7. Visibility Without a Blank Check | Show the scoping discipline before the capability |
-| 2026-11-24 | 8. From Open Port to Explainable Finding | Technical credibility on the network collector |
-| 2026-12-01 | 9. Built to Fail Safe, Not Fail Quiet | The most shareable post: a real bug caught before shipping |
-| 2026-12-08 | 10. What This Doesn't Do Yet | Close on honesty and the roadmap |
+| LinkedIn week of | Part | On the site | Goal |
+|---|---|---|---|
+| 2026-10-06 | 1. Why AI Agents Need a Flight Recorder | 2026-10-02 | Establish the problem |
+| 2026-10-13 | 2. From Simulated Traffic to Real Model Calls | 2026-10-02 | Show the working MVP and the real-SDK pivot |
+| 2026-10-20 | 3. Rules First, Statistics Second | 2026-10-02 | Build technical credibility, including the sequence-model pivot |
+| 2026-10-27 | 4. The Enterprise Foundation | 2026-10-02 | Show what makes it serious for CISOs |
+| 2026-11-03 | 5. Feeding the SOC, and What's Next | 2026-10-02 | Clarify positioning and roadmap; series 1 closes |
+| 2026-11-10 | 6. The Blind Spot Every AI-Agent Firewall Has | 2026-11-10 | Reopen on a concrete new capability |
+| 2026-11-17 | 7. Visibility Without a Blank Check | 2026-11-17 | Show the scoping discipline before the capability |
+| 2026-11-24 | 8. From Open Port to Explainable Finding | 2026-11-24 | Technical credibility on the network collector |
+| 2026-12-01 | 9. Built to Fail Safe, Not Fail Quiet | 2026-12-01 | The most shareable post: a real bug caught before shipping |
+| 2026-12-08 | 10. What This Doesn't Do Yet | 2026-12-08 | Close on honesty and the roadmap |
 
 
 ## Scope of this repository
