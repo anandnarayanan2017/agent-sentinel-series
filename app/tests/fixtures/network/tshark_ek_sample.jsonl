@@ -1,8 +1,0 @@
-{"index":{"_index":"packets-2026-08-20","_type":"doc"}}
-{"timestamp":"1755600000000","layers":{"frame_frame_time_epoch":["1755600000.000000000"],"eth_eth_dst":["aa:bb:cc:dd:ee:01"],"ip_ip_src":["192.0.2.11"],"ip_ip_dst":["203.0.113.10"],"tcp_tcp_dstport":["443"],"tls_tls_handshake_type":["1"],"tls_tls_handshake_extensions_server_name":["example.com"]}}
-{"index":{"_index":"packets-2026-08-20","_type":"doc"}}
-{"timestamp":"1755600001000","layers":{"frame_frame_time_epoch":["1755600001.000000000"],"eth_eth_dst":["aa:bb:cc:dd:ee:01"],"ip_ip_src":["192.0.2.11"],"ip_ip_dst":["203.0.113.20"],"tcp_tcp_dstport":["8080"]}}
-{"index":{"_index":"packets-2026-08-20","_type":"doc"}}
-{"timestamp":"1755600002000","layers":{"frame_frame_time_epoch":["1755600002.000000000"],"eth_eth_dst":["aa:bb:cc:dd:ee:02"],"ip_ip_src":["192.0.2.12"],"ip_ip_dst":["203.0.113.30"],"udp_udp_dstport":["53"]}}
-{"index":{"_index":"packets-2026-08-20","_type":"doc"}}
-{"timestamp":"1755600003000","layers":{"frame_frame_time_epoch":["1755600003.000000000"],"ip_ip_src":["192.0.2.99"],"ip_ip_dst":["203.0.113.40"],"tcp_tcp_dstport":["9443"]}}

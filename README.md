@@ -20,8 +20,8 @@ Parts are published weekly, one per Tuesday; later parts are marked "coming soon
 | `app/sentinel/` | Collectors, detection engine, explainer, storage, API, SIEM export |
 | `app/sentinel_sequence/` | The optional sequence-anomaly model (advisory only, off by default) |
 | `app/tests/` | Regression tests the traceability matrix points at |
-| `policies/`, `config/` | Example policy and network host-map config |
-| `docs/` | Architecture, compliance mapping, network collector, ADR-0001 and ADR-0008 |
+| `policies/` | Example policy files |
+| `docs/` | Architecture, compliance mapping, ADR-0001 |
 | `examples/`, `dashboard/`, `start_phase2.sh` | Demo agents and the CISO dashboard the posts mention |
 
 ## Run the tests
@@ -32,5 +32,19 @@ pip install pydantic duckdb pyyaml fastapi uvicorn numpy pytest httpx psycopg2-b
 python -m pytest -q -m "not integration"
 ```
 
-Expected: 386 passed with `pip install -e ".[auth,postgres]"` (the 8 JWT tests skip without `python-jose`).
+Expected: 289 passed with `pip install -e ".[auth,postgres]"` (the 8 JWT tests skip without `python-jose`).
 Check the write-ups' links with `python scripts/check_links.py`.
+
+## Run it end to end
+
+```bash
+python scripts/e2e.py            # starts the server, sends good and bad agent traffic,
+                                 # checks the findings, the APIs and the dashboard HTML
+python scripts/e2e.py --shots out   # also opens the dashboard in headless Chromium
+                                    # (needs `pip install playwright`) and saves screenshots
+```
+
+To explore by hand: `SENTINEL_DEV_MODE=1 SENTINEL_POLICY=policies/fintech.yaml sentinel serve`,
+open <http://localhost:8000>, and in a second terminal run
+`python examples/phase1/fintech_sim/sim.py` (or `sentinel demo` for the scripted attack).
+Dev mode turns authentication off; never use it on a reachable host.

@@ -51,11 +51,6 @@ CREATE TABLE IF NOT EXISTS events (
     bytes_in    BIGINT DEFAULT 0,
     attributes  JSONB,
     evidence    JSONB,
-    src_ip      VARCHAR,
-    dst_ip      VARCHAR,
-    dst_port    INTEGER,
-    protocol    VARCHAR,
-    mac         VARCHAR,
     PRIMARY KEY (event_id, ts)
 );
 
@@ -113,10 +108,9 @@ CREATE TABLE IF NOT EXISTS approvals (
 
 
 class StorageMigrationError(Exception):
-    """Raised when the network-visibility column migration cannot be verified
-    (design/DESIGN.md §5.2). Defined here, not in `storage/base.py` — the
-    migration is backend-internal and must not grow the abstract interface
-    (B6a)."""
+    """Raised when a schema migration cannot be verified. Defined here, not in
+    `storage/base.py` — the migration is backend-internal and must not grow
+    the abstract interface (B6a)."""
 
 
 # Separate from `_DDL` on purpose (design/DESIGN.md §5.2): `_DDL` runs inside
@@ -127,19 +121,12 @@ class StorageMigrationError(Exception):
 # IF NOT EXISTS` is supported from Postgres 9.6, so this list is idempotent
 # on its own — no separate existence check is needed before running it.
 _MIGRATIONS = [
-    "ALTER TABLE events ADD COLUMN IF NOT EXISTS src_ip   VARCHAR;",
-    "ALTER TABLE events ADD COLUMN IF NOT EXISTS dst_ip   VARCHAR;",
-    "ALTER TABLE events ADD COLUMN IF NOT EXISTS dst_port INTEGER;",
-    "ALTER TABLE events ADD COLUMN IF NOT EXISTS protocol VARCHAR;",
-    "ALTER TABLE events ADD COLUMN IF NOT EXISTS mac      VARCHAR;",
     # Audit hash-chain columns (CR-17). An audit_log predating the chain has
     # NULLs here; `verify_audit_chain` reports the first such row as the break
     # rather than pretending history it never hashed is verified.
     "ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS prev_hash  VARCHAR(64);",
     "ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS entry_hash VARCHAR(64);",
 ]
-
-_NETWORK_COLUMN_NAMES = ["src_ip", "dst_ip", "dst_port", "protocol", "mac"]
 
 _HYPERTABLES = [
     ("events", "ts"),
@@ -217,22 +204,6 @@ class PGStore(StoreBase):
                     conn.rollback()
                     raise
 
-                # Unconditional post-condition (§5.2 step 4): success is
-                # verified, not assumed, so this still catches a swallowed
-                # or silently-no-op'd migration even if the block above is
-                # later refactored.
-                cur.execute(
-                    "SELECT column_name FROM information_schema.columns "
-                    "WHERE table_name = 'events' AND column_name = ANY(%s)",
-                    (_NETWORK_COLUMN_NAMES,),
-                )
-                found = {row[0] for row in cur.fetchall()}
-                missing = set(_NETWORK_COLUMN_NAMES) - found
-                if missing:
-                    raise StorageMigrationError(
-                        f"events table is missing network-visibility columns: {sorted(missing)}"
-                    )
-
                 # TimescaleDB hypertables (optional — skip if extension unavailable)
                 for table, col in _HYPERTABLES:
                     try:
@@ -266,16 +237,15 @@ class PGStore(StoreBase):
             with conn.cursor() as cur:
                 # Columns are named explicitly (design/DESIGN.md §5.3's
                 # recommendation) so the placeholder/column/param count
-                # triple (19 == 19 == 19) is self-evident and any future
+                # triple (14 == 14 == 14) is self-evident and any future
                 # drift fails loudly, not silently.
                 cur.execute(
                     """
                     INSERT INTO events (
                         event_id, ts, agent_id, session_id, action,
                         host, method, path, model, tool_name,
-                        bytes_out, bytes_in, attributes, evidence,
-                        src_ip, dst_ip, dst_port, protocol, mac
-                    ) VALUES (%s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s,%s, %s,%s,%s,%s,%s)
+                        bytes_out, bytes_in, attributes, evidence
+                    ) VALUES (%s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s,%s,%s,%s)
                     ON CONFLICT (event_id, ts) DO NOTHING
                     """,
                     (
@@ -293,11 +263,6 @@ class PGStore(StoreBase):
                         e.bytes_in,
                         json.dumps(e.attributes),
                         json.dumps([ev.model_dump() for ev in e.evidence]),
-                        e.src_ip,
-                        e.dst_ip,
-                        e.dst_port,
-                        e.protocol,
-                        e.mac,
                     ),
                 )
             conn.commit()

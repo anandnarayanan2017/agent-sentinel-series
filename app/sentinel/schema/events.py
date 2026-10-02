@@ -34,7 +34,6 @@ class ActionType(str, Enum):
 class Direction(str, Enum):
     EGRESS = "egress"
     INGRESS = "ingress"
-    LOCAL = "local"  # inventory/local-host observation, not packet direction
 
 
 class Evidence(BaseModel):
@@ -70,17 +69,6 @@ class AgentEvent(BaseModel):
     host: Optional[str] = None  # e.g. api.anthropic.com, ledger.internal
     method: Optional[str] = None  # HTTP verb where relevant
     path: Optional[str] = None
-
-    # network-visibility collector (design/DESIGN.md §2.1, I-1). Exactly five
-    # additive, defaulted fields. Binding per §2.1.1: `host` above is never
-    # populated from `dst_ip` — only from a reverse-resolved hostname (from
-    # capture data or the operator's host map) or left None. No validator can
-    # raise here; hostile capture input must never fail AgentEvent(...).
-    src_ip: Optional[str] = None  # source IPv4/IPv6 literal; live capture only
-    dst_ip: Optional[str] = None  # destination IPv4/IPv6 literal
-    dst_port: Optional[int] = None  # destination TCP/UDP port, 1-65535
-    protocol: Optional[str] = None  # lowercase transport/app token: tcp/udp/tls
-    mac: Optional[str] = None  # mapped host's MAC, normalized lowercase colon-separated
 
     # semantics
     model: Optional[str] = None  # for LLM_CALL

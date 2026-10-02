@@ -198,9 +198,9 @@ class Pipeline:
         This is the body formerly inlined in `ingest_flow` (lock, insert_event,
         evaluate, insert_finding loop, alerter, SIEM), extracted verbatim so a
         collector that builds its own `AgentEvent`s directly — never through
-        `parse_flow`, since it is not parsing an HTTP flow (e.g.
-        `collector/network_scan.py`) — enters the same pipeline `ingest_flow`
-        uses, through the same locks, at the same point in the flow.
+        `parse_flow`, since it is not parsing an HTTP flow — enters the same
+        pipeline `ingest_flow` uses, through the same locks, at the same point
+        in the flow.
         """
         with self._store_lock:
             self.store.insert_event(event)

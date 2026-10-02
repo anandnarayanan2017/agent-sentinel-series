@@ -16,7 +16,6 @@ flowchart LR
     subgraph Capture["Collector front-ends"]
         P["Egress proxy"]
         S["SDK wrappers"]
-        N["Network visibility\ntshark / scoped nmap"]
         E["eBPF probe\nfuture"]
     end
 
@@ -37,9 +36,8 @@ flowchart LR
 
     A1 & A2 & A3 -->|"LLM / MCP / tool / egress"| P
     A1 & A2 & A3 --> S
-    A1 & A2 & A3 -.-> N
     A1 & A2 & A3 -.-> E
-    P & S & N --> API
+    P & S --> API
     E -.-> API
     API --> PA --> EV --> DET --> EXP
     EV --> ST
@@ -58,7 +56,6 @@ flowchart TB
     subgraph CapturePlane[Capture plane]
         PROXY[mitmproxy addon]
         SDK[Azure OpenAI / Anthropic wrappers]
-        NET[Network collector]
     end
 
     subgraph ServicePlane[Service plane]
@@ -87,7 +84,7 @@ flowchart TB
         SOC[SOC / reviewer]
     end
 
-    PROXY & SDK & NET --> API --> PIPE --> PARSER --> ENGINE
+    PROXY & SDK --> API --> PIPE --> PARSER --> ENGINE
     ENGINE --> POLICY
     ENGINE --> BASE
     ENGINE --> SEQ
@@ -324,21 +321,6 @@ flowchart TB
     API --> UI --> SOC
 ```
 
-## 8. Network collector boundary
-
-```mermaid
-flowchart LR
-    SCOPE[Authorized target scope] --> ADAPTER[Typed collector adapter]
-    ADAPTER --> TSHARK[tshark capture]
-    ADAPTER --> NMAP[scoped nmap discovery]
-    TSHARK & NMAP --> NORMALIZE[Normalized evidence]
-    NORMALIZE --> PIPE[Sentinel pipeline]
-
-    DENY["No arbitrary shell / command-string interface"] -. invariant .-> ADAPTER
-```
-
-Active discovery is not a generic execution facility. Target scope, arguments, duration and resource use must be bounded independently of any agent/model request.
-
 ## 9. Architectural decisions and trade-offs
 
 | Decision | Choice | Trade-off / rationale |
@@ -351,7 +333,6 @@ Active discovery is not a generic execution facility. Target scope, arguments, d
 | Explanation | Deterministic from evidence | Audit-friendly; less free-form than generative explanation. |
 | Local storage | DuckDB | Simple single-node operation; intentionally lacks production audit/approval semantics. |
 | Production storage | Postgres/TimescaleDB | Multi-writer durability and workflow support at greater operational cost. |
-| Network visibility | Bounded collector adapters | Useful visibility without turning Sentinel into an arbitrary remote shell. |
 
 ## 10. Architecture principles
 
@@ -359,7 +340,6 @@ Active discovery is not a generic execution facility. Target scope, arguments, d
 2. **Normalize once.** All collectors converge on a typed, transport-independent event contract.
 3. **Evidence is the source of truth.** Explanations and compliance mappings derive from structured evidence.
 4. **Treat observed content as untrusted data.** LLM/tool/network strings never become instructions to Sentinel.
-5. **Separate observation from execution.** Network visibility adapters expose narrow capabilities, not arbitrary shell access.
 6. **Make degraded modes explicit.** DuckDB and optional analytics have intentionally different guarantees from the production stack.
 7. **Do not hide distributed-state limitations.** Scale-out requires shared state for counters, baselines and session-aware analytics.
 8. **Prefer auditable failure behavior.** Optional analytics may fail open for ingestion; authoritative schema/policy/security controls must remain explicit and observable.
