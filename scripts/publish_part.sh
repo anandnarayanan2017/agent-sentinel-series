@@ -7,10 +7,13 @@
 #
 # It copies Part N's LinkedIn post, technical write-up and image, restores its
 # row in docs/blog/README.md and docs/blog/TRACEABILITY.md, re-links earlier
-# parts to it, then runs the repo checks and commits. It never pushes: review
+# parts to it (touching nothing else in them), and for Part 6 restores the
+# network-collector code that Parts 1-5 do not include. It then runs the repo
+# checks (tests, links, scope, end-to-end) and commits. It never pushes: review
 # the commit, push the branch and open the PR yourself.
 #
 # Override the source with SOURCE_REPO and SOURCE_REF if needed.
+# The source branch must also hold patches/restore-code-parts-6-10.patch.
 set -euo pipefail
 
 main() {
@@ -26,8 +29,9 @@ SOURCE_REF="${SOURCE_REF:-series-full-backup}"
 cd "$(git rev-parse --show-toplevel)"
 [[ -z "$(git status --porcelain)" ]] || { echo "working tree not clean" >&2; exit 1; }
 
-git fetch -q origin main
-git checkout -q -B "$BRANCH" origin/main
+BASE_REF="${BASE_REF:-origin/main}"   # override only to test against an unpushed branch
+[[ "$BASE_REF" != origin/main ]] || git fetch -q origin main
+git checkout -q -B "$BRANCH" "$BASE_REF"
 git fetch -q "$SOURCE_REPO" "$SOURCE_REF"
 SRC=FETCH_HEAD
 
@@ -51,29 +55,55 @@ def num(path):
     m = re.match(r"(\d+)-", os.path.basename(path))
     return int(m.group(1)) if m else None
 
-# 1. Copy parts 1..n (posts, write-ups, images) from the source. Re-copying
-#    earlier parts restores any link that pointed at a part now released.
+# 1. Copy Part n's own files (post, write-up, image) from the source. Earlier
+#    parts are never overwritten: this repository is the source of truth for
+#    anything already published.
 new = False
 for d in ("linkedin", "technical-details", "images"):
     for p in ls(f"{B}/{d}/"):
-        k = num(p)
-        if k is None or k > n:
+        if num(p) != n:
             continue
-        if k == n and not os.path.exists(p):
+        if not os.path.exists(p):
             new = True
         os.makedirs(os.path.dirname(p), exist_ok=True)
         open(p, "wb").write(show(p))
 if not new:
     sys.exit(f"Part {n} not found in source, or already published")
 
-# 2. Unlink references to parts that are not published yet (> n).
-for p in glob.glob(f"{B}/technical-details/*.md") + glob.glob(f"{B}/linkedin/*.md"):
+LINK = r"\[([^\]]+)\]\(((?:\.\./(?:technical-details|linkedin)/|)(0[1-9]|10)-[^)]*)\)"
+mine = [p for d in ("linkedin", "technical-details") for p in glob.glob(f"{B}/{d}/{n:02d}-*.md")]
+
+# 2a. In the new part, leave references to parts not yet published as plain text.
+for p in mine:
     t = open(p, encoding="utf-8").read()
-    t2 = re.sub(r"\[([^\]]+)\]\((?:\.\./(?:technical-details|linkedin)/|)"
-                r"(0[1-9]|10)-[^)]*\)",
-                lambda m: m.group(0) if int(m.group(2)) <= n else m.group(1), t)
+    t2 = re.sub(LINK, lambda m: m.group(0) if int(m.group(3)) <= n else m.group(1), t)
     if t2 != t:
         open(p, "w", encoding="utf-8").write(t2)
+
+# 2b. In earlier parts, turn plain-text mentions of Part n into links, using the
+#     link target the source uses for that label. Nothing else in them changes.
+for d in ("linkedin", "technical-details"):
+    for p in glob.glob(f"{B}/{d}/*.md"):
+        if num(p) is None or num(p) >= n:
+            continue
+        t = open(p, encoding="utf-8").read()
+        try:
+            source = show(p).decode()
+        except subprocess.CalledProcessError:
+            continue
+        for m in re.finditer(LINK, source):
+            if int(m.group(3)) != n:
+                continue
+            label, url = m.group(1), m.group(2)
+            t = re.sub(r"(?<!\[)" + re.escape(label) + r"(?!\])", lambda _: f"[{label}]({url})", t, count=1)
+        open(p, "w", encoding="utf-8").write(t)
+
+# 2c. Part 6 is where the network-visibility collector appears: bring back the
+#     code, tests, config and docs that were held back (kept in the source repo
+#     as patches/restore-code-parts-6-10.patch).
+if n == 6 and not os.path.exists("app/sentinel/collector/network_scan.py"):
+    patch = show("patches/restore-code-parts-6-10.patch")
+    subprocess.run(["git", "apply", "--3way", "-"], input=patch, check=True)
 
 # 3. README table row: replace the "coming soon" row with the source row.
 src_readme = show(f"{B}/README.md").decode().split("\n")
@@ -98,6 +128,7 @@ done
 python3 scripts/check_links.py
 python3 scripts/check_scope.py
 python3 -m pytest -q -m "not integration"
+python3 scripts/e2e.py
 
 git add -A
 git commit -q -m "Publish Part${LAST:+s} $ARG of the Agent Sentinel series"
