@@ -26,10 +26,10 @@ its regression test, and its current-versus-roadmap boundary.
 | # | Part | LinkedIn post | Technical write-up | Main code | Regression test |
 |---|---|---|---|---|---|
 | 1 | Why AI Agents Need a Flight Recorder | [post](linkedin/01-why-agents-need-a-flight-recorder.md) | [read](technical-details/01-why-agents-need-a-flight-recorder.md) | `pipeline.py`, `detection/engine.py` | [`test_pipeline.py`](../../app/tests/test_pipeline.py) |
-| 2 | From Simulated Traffic to Real Model Calls | coming soon | coming soon | | |
-| 3 | Rules First, Statistics Second | coming soon | coming soon | | |
-| 4 | The Enterprise Foundation | coming soon | coming soon | | |
-| 5 | Feeding the SOC, and What's Next | coming soon | coming soon | | |
+| 2 | From Simulated Traffic to Real Model Calls | [post](linkedin/02-simulation-to-real-models.md) | [read](technical-details/02-simulation-to-real-models.md) | `collector/azure_openai.py`, `anthropic_sdk.py`, `redaction.py` | [`test_collector_contracts.py`](../../app/tests/test_collector_contracts.py) |
+| 3 | Rules First, Statistics Second | [post](linkedin/03-rules-first-statistics-second.md) | [read](technical-details/03-rules-first-statistics-second.md) | `detection/engine.py`, `policy.py`, `sequence_layer.py` | [`test_sequence_layer.py`](../../app/tests/test_sequence_layer.py) |
+| 4 | The Enterprise Foundation | [post](linkedin/04-enterprise-foundation.md) | [read](technical-details/04-enterprise-foundation.md) | `api/auth.py`, `api/audit.py`, `storage/pg_store.py` | [`test_auth.py`](../../app/tests/test_auth.py) |
+| 5 | Feeding the SOC, and What's Next | [post](linkedin/05-soc-and-whats-next.md) | [read](technical-details/05-soc-and-whats-next.md) | `siem/log_analytics.py`, `alerting/webhook.py` | [`test_siem_log_analytics.py`](../../app/tests/test_siem_log_analytics.py) |
 | 6 | The Blind Spot Every AI-Agent Firewall Has | coming soon | coming soon | | |
 | 7 | Visibility Without a Blank Check | coming soon | coming soon | | |
 | 8 | From Open Port to Explainable Finding | coming soon | coming soon | | |
