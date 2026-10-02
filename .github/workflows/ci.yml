@@ -26,6 +26,8 @@ jobs:
           pip install -e ".[auth,postgres]" pytest httpx bandit pip-audit
       - name: Tests
         run: python -m pytest -q -m "not integration"
+      - name: End-to-end (server, traffic, API, dashboard HTML)
+        run: python scripts/e2e.py
       - name: Scope and size guard
         run: python scripts/check_scope.py
       - name: Link check
