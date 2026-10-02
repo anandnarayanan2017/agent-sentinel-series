@@ -13,9 +13,13 @@ Agent Sentinel works like a flight recorder. It doesn't fly the plane. It makes 
 Blocking comes later, on the roadmap. You can't safely block what you can't yet explain.
 
 This is Part 1 of a 10-part series on building it.
+Next week: Part 2, From Simulated Traffic to Real Model Calls.
 
 If an auditor asked today what your AI agents did last week, what could you show them?
 
-![Agent Sentinel: a flight recorder for AI agents](../images/01-why-agents-need-a-flight-recorder-1.png)
+![Diagram: Why AI Agents Need a Flight Recorder](../images/01-why-agents-need-a-flight-recorder-1.png)
 
 First comment: Read the full article → https://anandnarayanan.net/blog/agent-sentinel-01-why-agents-need-a-flight-recorder/
+Code and tests: https://github.com/anandnarayanan2017/agent-sentinel-series
+
+#AIAgents #AIGovernance #CISO #AuditReadiness

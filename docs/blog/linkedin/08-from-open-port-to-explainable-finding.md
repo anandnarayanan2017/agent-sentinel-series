@@ -13,9 +13,13 @@ Which obligation it relates to. Every finding cites the regulatory controls an a
 Most dashboards can't tell "we checked and it's clean" from "we didn't check."
 
 This is Part 8 of a 10-part series on building it.
+Next week: Part 9, Built to Fail Safe, Not Fail Quiet.
 
 How does your team tell those two apart?
 
-![From open port to explainable finding](../images/08-from-open-port-to-explainable-finding-1.png)
+![Diagram: From Open Port to Explainable Finding](../images/08-from-open-port-to-explainable-finding-1.png)
 
 First comment: Read the full article → https://anandnarayanan.net/blog/agent-sentinel-08-from-open-port-to-explainable-finding/
+Code and tests: https://github.com/anandnarayanan2017/agent-sentinel-series
+
+#AIAgents #AgentSecurity #DORA #SecurityOperations

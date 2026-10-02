@@ -13,9 +13,13 @@ It's off until someone decides twice: once to write the list, once to switch it 
 That's what lets a security review approve it without a page of caveats.
 
 This is Part 7 of a 10-part series on building it.
+Next week: Part 8, From Open Port to Explainable Finding.
 
 Where do you draw the line between useful visibility and a new risk?
 
-![Visibility without a blank check](../images/07-visibility-without-a-blank-check-1.png)
+![Diagram: Visibility Without a Blank Check](../images/07-visibility-without-a-blank-check-1.png)
 
 First comment: Read the full article → https://anandnarayanan.net/blog/agent-sentinel-07-visibility-without-a-blank-check/
+Code and tests: https://github.com/anandnarayanan2017/agent-sentinel-series
+
+#AIAgents #AgentSecurity #Privacy #CISO

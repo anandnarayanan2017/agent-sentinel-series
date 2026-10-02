@@ -14,6 +14,9 @@ This is Part 5 of a 10-part series. Next, I look at what a proxy can't see.
 
 What AI-agent evidence do you most wish showed up in your existing SOC tools?
 
-![Soc and whats next](../images/05-soc-and-whats-next-1.png)
+![Diagram: Feeding the SOC, and What's Next](../images/05-soc-and-whats-next-1.png)
 
 First comment: Read the full article → https://anandnarayanan.net/blog/agent-sentinel-05-soc-and-whats-next/
+Code and tests: https://github.com/anandnarayanan2017/agent-sentinel-series
+
+#AIAgents #SOC #MicrosoftSentinel #Splunk

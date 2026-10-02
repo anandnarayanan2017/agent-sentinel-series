@@ -11,9 +11,13 @@ Recording can fail open. Blocking, later, won't get to.
 For a regulated firm, that ordering is what makes a new control something operations will accept rather than quietly work around.
 
 This is Part 2 of a 10-part series on building it.
+Next week: Part 3, Rules First, Statistics Second.
 
 Where would you draw the line between complete recording and never getting in the way?
 
-![Simulation to real models](../images/02-simulation-to-real-models-1.png)
+![Diagram: From Simulated Traffic to Real Model Calls](../images/02-simulation-to-real-models-1.png)
 
 First comment: Read the full article → https://anandnarayanan.net/blog/agent-sentinel-02-simulation-to-real-models/
+Code and tests: https://github.com/anandnarayanan2017/agent-sentinel-series
+
+#AIAgents #FinTech #AIGovernance #Observability
